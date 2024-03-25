@@ -292,6 +292,7 @@ from test_dyn import test_while_training
 from utils.model_save_load_tool import *
 from utils.visual import *
 
+
 @ray.remote(num_cpus=1, num_gpus=1)
 class Learner:
     def __init__(self, opt, buffer: GlobalBuffer):
@@ -443,10 +444,10 @@ class Learner:
                 if i % configs.save_interval == 0:
                     nowtime = time.strftime("%Y-%m-%d-%H", time.localtime())
                     path = os.path.join(configs.save_path, '{}-{}.pth'.format(nowtime, self.counter))
-                    model_save(self.model, path, self.counter, self.avg_loss, self.avg_reward, self.avg_finish_cases, self.avg_steps)
+                    model_save(self.model, path, self.counter, self.avg_loss, self.avg_reward, self.avg_finish_cases,
+                               self.avg_steps)
                     print(
                         "save model path:" + os.path.join(configs.save_path, '{}-{}.pth'.format(nowtime, self.counter)))
-
 
         self.done = True
         self.writer.close()
@@ -455,7 +456,6 @@ class Learner:
         abs_td_error = td_error.abs()
         flag = (abs_td_error < kappa).float()
         return flag * abs_td_error.pow(2) * 0.5 + (1 - flag) * (abs_td_error - 0.5)
-
 
     def stats(self, interval: int):
         print('number of updates: {}'.format(self.counter))
