@@ -224,7 +224,8 @@ class GlobalBuffer:
 
             self.priority_tree.batch_update(np.copy(idxes), np.copy(priorities) ** self.alpha)
 
-    def stats(self, interval: int):
+    def log(self, interval, use=False):
+        if not use: return
         print(60 * '*')
         print('buffer update speed: {}/s'.format(self.counter / interval))
         print('buffer size: {}'.format(self.size))
@@ -243,6 +244,10 @@ class GlobalBuffer:
                 else:
                     print('   N/A  ', end='')
             print()
+
+    def stats(self, interval: int):
+
+        self.log(interval)
 
         for key, val in self.stat_dict.copy().items():
             # print('{}: {}/{}'.format(key, sum(val), len(val)))
@@ -451,12 +456,15 @@ class Learner:
         flag = (abs_td_error < kappa).float()
         return flag * abs_td_error.pow(2) * 0.5 + (1 - flag) * (abs_td_error - 0.5)
 
-    def stats(self, interval: int):
+    def log(self, interval, use=False):
+        if not use: return
         print('number of updates: {}'.format(self.counter))
         print('update speed: {}/s'.format((self.counter - self.last_counter) / interval))
         if self.counter != self.last_counter:
             print('loss: {:.4f}'.format(self.loss / (self.counter - self.last_counter)))
 
+    def stats(self, interval: int):
+        self.log(interval)
         self.last_counter = self.counter
         self.loss = 0
         return self.done
