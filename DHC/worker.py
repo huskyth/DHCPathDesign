@@ -358,18 +358,11 @@ class Learner:
         while not ray.get(self.buffer.check_done.remote()) and self.counter < configs.training_times:
 
             for i in range(1, 100001):
-                # for i in range(1, 1000001):
-                # for i in range(1, 1001):
-
                 data_id = ray.get(self.buffer.get_data.remote())
                 data = ray.get(data_id)
-                # todo
-                # print("data", data)
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, idxes, weights, old_ptr = data
-                # todo
 
                 print_process_info(0)
-                # print("b_reward.shape", b_reward.shape)
 
                 # 以counter为x，以累计奖赏均值为y作图
                 mean_reward = b_reward.mean().item()
@@ -379,6 +372,7 @@ class Learner:
                      title='Average reward per counter')
                 plot(self.writer, x=self.counter + 1, y=mean_reward,
                      title='Reward per counter')
+
                 b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), b_reward.to(self.device)
                 b_done, b_steps, weights = b_done.to(self.device), b_steps.to(self.device), weights.to(self.device)
                 b_hidden = b_hidden.to(self.device)
