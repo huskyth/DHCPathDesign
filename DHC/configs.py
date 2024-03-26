@@ -17,11 +17,10 @@ from pathlib import Path
 import os
 
 FILE = Path(__file__).resolve()
-PROJECT_ROOT = FILE.parent.parent.parent.parent
+PROJECT_ROOT = FILE.parent
 MODEL_FILE = PROJECT_ROOT / 'models'
 if not MODEL_FILE.exists():
     os.mkdir(str(MODEL_FILE))
-print(MODEL_FILE)
 obs_shape = (6, 2 * obs_radius + 1, 2 * obs_radius + 1)
 action_dim = 5
 
