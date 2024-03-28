@@ -19,7 +19,7 @@ import torch.nn as nn
 
 @ray.remote(num_cpus=1, num_gpus=1)
 class Learner:
-    def __init__(self, buffer: GlobalBuffer):
+    def __init__(self, buffer: GlobalBuffer, summary):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
         self.state = None
@@ -43,6 +43,8 @@ class Learner:
         self.learning_thread = None
         self.weights_id = None
 
+        self.my_summary = summary
+
     def get_weights(self):
         return self.weights_id
 
@@ -58,10 +60,13 @@ class Learner:
 
     def train(self):
         scaler = GradScaler()
-
+        epoch = 0
         while not ray.get(self.buffer.check_done.remote()):
-
-            for i in range(1, 100001):
+            epoch += 1
+            step_length = 10000
+            for i in range(1, step_length):
+                current_x = i + step_length * (epoch - 1)
+                self.my_summary.add_float(x=current_x, y=i, title="Step", x_name="Step")
                 data_id = ray.get(self.buffer.get_data.remote())
                 data = ray.get(data_id)
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
@@ -93,6 +98,8 @@ class Learner:
 
                 self.optimizer.zero_grad()
                 scaler.scale(loss).backward()
+
+                self.my_summary.add_float(x=current_x, y=loss.item(), title="Loss", x_name="Step")
 
                 scaler.unscale_(self.optimizer)
                 nn.utils.clip_grad_norm_(self.model.parameters(), 40)

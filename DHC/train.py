@@ -1,4 +1,3 @@
-import argparse
 import os
 import random
 import time
@@ -9,6 +8,7 @@ import ray
 
 from DHC.actor import Actor
 from DHC.learner import Learner
+from DHC.utils.tensor_board_tool import MySummary
 from global_buffer import GlobalBuffer
 import configs
 
@@ -18,20 +18,15 @@ np.random.seed(2022)
 random.seed(2022)
 
 
-def parse_opt():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./models/2000.pth', help='initial weights path')
-    parser.add_argument('--resume', nargs='?', const=True, default=False, help='resume most recent training')
-    return parser.parse_args()
-
-
-def main(opt=None, num_actors=configs.num_actors, log_interval=configs.log_interval):
+def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray.init()
     # ray.init(local_mode=True)
     buffer = GlobalBuffer.remote()
-    learner = Learner.remote(opt, buffer=buffer)
+    my_summary = MySummary(use_wandb=False)
+    learner = Learner.remote(buffer=buffer, summary=my_summary)
     time.sleep(1)
-    actors = [Actor.remote(opt, i, 0.4 ** (1 + (i / (num_actors - 1)) * 7), learner, buffer) for i in range(num_actors)]
+    actors = [Actor.remote(i, 0.4 ** (1 + (i / (num_actors - 1)) * 7),
+                           learner, buffer) for i in range(num_actors)]
 
     for actor in actors:
         actor.run.remote()
@@ -52,6 +47,4 @@ def main(opt=None, num_actors=configs.num_actors, log_interval=configs.log_inter
 
 
 if __name__ == '__main__':
-    opt = parse_opt()
-    main(opt)
-    print("end")
+    main()
