@@ -4,3 +4,6 @@ DHC/__pycache__
 *.pyc
 visual
 *.gif
+
+wandb_log
+summary_log
