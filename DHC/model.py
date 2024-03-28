@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pack_padded_sequence
 from torch.cuda.amp import autocast
 import configs
 
@@ -39,7 +38,6 @@ class MultiHeadAttention(nn.Module):
         self.W_V = nn.Linear(input_dim, output_dim * num_heads)
         self.W_O = nn.Linear(output_dim * num_heads, output_dim, bias=False)
 
-    # 图里的e_i
     def forward(self, input, attn_mask):
         # input: [batch_size x num_agents x input_dim]
         batch_size, num_agents, input_dim = input.size()
@@ -72,7 +70,6 @@ class MultiHeadAttention(nn.Module):
         context = context.transpose(1, 2).contiguous().view(batch_size, num_agents,
                                                             self.num_heads * self.output_dim)  # context: [batch_size x len_q x n_heads * d_v]
         output = self.W_O(context)
-        # 还没经过GRU
         return output  # output: [batch_size x num_agents x output_dim]
 
 
@@ -107,9 +104,7 @@ class CommBlock(nn.Module):
         attn_mask = comm_mask == False
 
         for _ in range(self.num_layers):
-            # 多头注意力
             info = self.self_attn(latent, attn_mask=attn_mask)
-            # latent = attn_layer(latent, attn_mask=attn_mask)
             if len(comm_idx) == 1:
 
                 batch_idx = torch.zeros(len(comm_idx[0]), dtype=torch.long)
@@ -118,10 +113,7 @@ class CommBlock(nn.Module):
             else:
                 update_info = self.update_cell(info.view(-1, self.output_dim), latent.view(-1, self.input_dim)).view(
                     configs.batch_size, num_agents, self.input_dim)
-                # update_mask = update_mask.unsqueeze(2)
                 latent = torch.where(update_mask, update_info, latent)
-                # latent[comm_idx] = self.update_cell(info[comm_idx], latent[comm_idx])
-                # latent = self.update_cell(info, latent)
 
         return latent
 
@@ -200,7 +192,6 @@ class Network(nn.Module):
         q_val = state_val + adv_val - adv_val.mean(1, keepdim=True)
 
         actions = torch.argmax(q_val, 1).tolist()
-        # print("actions:",actions)
         return actions, q_val.numpy(), self.hidden.numpy(), comm_mask.numpy()
 
     def reset(self):
