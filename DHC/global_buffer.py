@@ -75,15 +75,12 @@ class GlobalBuffer:
         '''
         if data[0] >= 12:
             stat_key = (data[1], data[2])
-
             if stat_key in self.stat_dict:
-
                 self.stat_dict[stat_key].append(data[8])
                 if len(self.stat_dict[stat_key]) == 201:
                     self.stat_dict[stat_key].pop(0)
 
         with self.lock:
-
             idxes = np.arange(self.ptr * self.local_buffer_capacity, (self.ptr + 1) * self.local_buffer_capacity)
             start_idx = self.ptr * self.local_buffer_capacity
             # update buffer size
@@ -221,23 +218,18 @@ class GlobalBuffer:
             print()
 
     def stats(self, interval: int):
-
         self.log(interval)
-
         for key, val in self.stat_dict.copy().items():
             if len(val) == 200 and sum(val) >= 200 * configs.pass_rate:
                 # add number of agents
                 add_agent_key = (key[0] + 1, key[1])
                 if add_agent_key[0] <= configs.max_num_agents and add_agent_key not in self.stat_dict:
                     self.stat_dict[add_agent_key] = []
-
                 if key[1] < configs.max_map_lenght:
                     add_map_key = (key[0], key[1] + 5)
                     if add_map_key not in self.stat_dict:
                         self.stat_dict[add_map_key] = []
-
         self.env_settings_set = ray.put(list(self.stat_dict.keys()))
-
         self.counter = 0
 
     def ready(self):
@@ -250,16 +242,12 @@ class GlobalBuffer:
         return self.env_settings_set
 
     def check_done(self):
-
         for i in range(configs.max_num_agents):
             if (i + 1, configs.max_map_lenght) not in self.stat_dict:
                 return False
-
             l = self.stat_dict[(i + 1, configs.max_map_lenght)]
-
             if len(l) < 200:
                 return False
             elif sum(l) < 200 * configs.pass_rate:
                 return False
-
         return True
