@@ -3,6 +3,7 @@ import time
 from torch.utils.tensorboard import SummaryWriter
 import wandb
 from pathlib import Path
+import ray
 
 
 def create_directory(path):
@@ -20,6 +21,7 @@ create_directory(SUMMARY_PATH)
 log_dir = SUMMARY_PATH
 
 
+@ray.remote(num_cpus=1)
 class MySummary:
 
     def __init__(self, log_dir_name="default", use_wandb=True):

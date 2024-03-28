@@ -22,7 +22,7 @@ def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray.init()
     # ray.init(local_mode=True)
     buffer = GlobalBuffer.remote()
-    my_summary = MySummary(use_wandb=False)
+    my_summary = MySummary.remote(use_wandb=False)
     learner = Learner.remote(buffer=buffer, summary=my_summary)
     time.sleep(1)
     actors = [Actor.remote(i, 0.4 ** (1 + (i / (num_actors - 1)) * 7),
