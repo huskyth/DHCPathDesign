@@ -1,25 +1,18 @@
 import time
-import random
-import os
 from copy import deepcopy
 from typing import Tuple
-import threading
 import ray
-import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.cuda.amp import GradScaler
 import numpy as np
 from model import Network
-# from environment import Environment
 from dyn_environment import Environment
 from buffer import SumTree, LocalBuffer
 import configs
 
 
-# 将python函数转换为远程函数
-# buffer，存储actors的经验/local buffer
 @ray.remote(num_cpus=1)
 class GlobalBuffer:
     def __init__(self, episode_capacity=configs.episode_capacity, local_buffer_capacity=configs.max_episode_length,
@@ -53,6 +46,8 @@ class GlobalBuffer:
         self.comm_mask_buf = np.zeros(
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, configs.max_num_agents),
             dtype=np.bool)
+
+        self.background_thread = None
 
     def __len__(self):
         return self.size
@@ -116,7 +111,6 @@ class GlobalBuffer:
 
     def sample_batch(self, batch_size: int) -> Tuple:
         b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_comm_mask = [], [], [], [], [], [], []
-        idxes, priorities = [], []
         b_hidden = []
 
         with self.lock:
@@ -153,7 +147,6 @@ class GlobalBuffer:
                     pad_len = configs.seq_len + configs.forward_steps - obs.shape[0]
                     obs = np.pad(obs, ((0, pad_len), (0, 0), (0, 0), (0, 0), (0, 0)))
                     comm_mask = np.pad(comm_mask, ((0, pad_len), (0, 0), (0, 0)))
-                # 累积奖励
                 action = self.act_buf[idx]
                 reward = 0
                 for i in range(steps):
@@ -172,18 +165,7 @@ class GlobalBuffer:
                 b_seq_len.append(seq_len)
                 b_hidden.append(hidden)
                 b_comm_mask.append(comm_mask)
-                # 需要定义x
-                # for i in range(len(b_reward)):
-                #     y = result[i]
-                #     plt.plot(x, y, marker='*', linestyle="-")
-                # plt.xlabel('epoch')  # 设置X轴标签
-                # plt.ylabel('return')  # 设置Y轴标签
-                # title = "epoch_return"
-                # plt.title(title)
-                # plt.legend()  # 显示图例，即每条线对应 label 中的内容
-                # file = './result/reward_curve&{}'.format(strftime('%Y-%m-%d %H:%M:%S', localtime(time())))
-                # plt.savefig(file)
-                # plt.show()
+
             # importance sampling weight
             min_p = np.min(priorities)
             weights = np.power(priorities / min_p, -self.beta)
@@ -202,8 +184,6 @@ class GlobalBuffer:
                 torch.from_numpy(weights).unsqueeze(1),
                 self.ptr
             )
-            # print('data', data)
-            # todo:打印出data
             return data
 
     def update_priorities(self, idxes: np.ndarray, priorities: np.ndarray, old_ptr: int):
@@ -250,7 +230,6 @@ class GlobalBuffer:
         self.log(interval)
 
         for key, val in self.stat_dict.copy().items():
-            # print('{}: {}/{}'.format(key, sum(val), len(val)))
             if len(val) == 200 and sum(val) >= 200 * configs.pass_rate:
                 # add number of agents
                 add_agent_key = (key[0] + 1, key[1])
@@ -303,10 +282,6 @@ class Learner:
     def __init__(self, opt, buffer: GlobalBuffer):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
-        # 加载已经训练好的模型
-        # self.model.load_state_dict(torch.load(weight_file, map_location=self.device))
-        # counter_temp = eval(weight_file.split('-')[-1].split('.')[0]) if weight_file else 0
-        # print('counter = {},weight_file = {}'.format(counter_temp, weight_file))
         self.state = None
         self.weight_file = None
 
@@ -340,6 +315,9 @@ class Learner:
 
         self.store_weights()
 
+        self.learning_thread = None
+        self.weights_id = None
+
     def get_weights(self):
         return self.weights_id
 
@@ -369,7 +347,6 @@ class Learner:
 
                 print_process_info(0)
 
-                # 以counter为x，以累计奖赏均值为y作图
                 mean_reward = b_reward.mean().item()
                 accumulative_reward += mean_reward
                 self.avg_reward = accumulative_reward / (self.counter + 1)
@@ -401,7 +378,6 @@ class Learner:
                 loss = (weights * self.huber_loss(td_error)).mean()
                 self.loss += loss.item()
 
-                # 以counter为x，以累计损失均值为y作图
                 accumulative_loss += loss.item()
                 self.avg_loss = accumulative_loss / (self.counter + 1)
                 plot(self.writer, x=self.counter + 1, y=self.avg_loss,
@@ -480,12 +456,6 @@ class Actor:
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
 
-        # 加载已经训练好的模型
-        # weight_file = opt.weights if opt.resume else './models/tengh/2022-10-16-15-4000.pth'
-        # self.model.load_state_dict(torch.load(weight_file, map_location=self.device))
-        # counter_temp = eval(weight_file.split('-')[-1].split('.')[0]) if weight_file else 0
-        # print('counter = {},weight_file = {}'.format(counter_temp, weight_file))
-
         if RESUME_MODEL_NAME:
             self.weight_file = os.path.join(configs.save_path, RESUME_MODEL_NAME)
             self.state = model_load(self.weight_file, self.device)
@@ -493,7 +463,6 @@ class Actor:
             self.model.load_state_dict(self.state['model_state'])
 
         self.model.eval()
-        # self.env = Environment(curriculum=True)
         self.env = Environment(curriculum=False)
         self.epsilon = epsilon
         self.learner = learner
@@ -502,9 +471,7 @@ class Actor:
         self.counter = 0
         self.writer = init_summary_writer()
 
-    # 主要是执行这个部分
     def run(self):
-        done = False
         obs, pos, local_buffer = self.reset()
         epsilon_count = 0
         accumulate_reward_per_episode = 0
@@ -513,17 +480,14 @@ class Actor:
             # sample action
             actions, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(obs.astype(np.float32)),
                                                                 torch.from_numpy(pos.astype(np.float32)))
-            # print("actions",actions)
             if random.random() < epsilon_use:
                 # Note: only one agent do random action in order to keep the environment stable
                 actions[0] = np.random.randint(0, 5)
             # take action in env
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)  # 这里的reward是用上了的
-            # print("rewards", rewards)
-            # return data and update observation
             local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, comm_mask)
             accumulate_reward_per_episode += rewards[0]
-            if done == False and self.env.steps < self.max_episode_length:
+            if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos
             else:
                 # finish and send buffer
@@ -539,13 +503,9 @@ class Actor:
                 epsilon_count += 1
                 accumulate_reward_per_episode = 0
                 self.global_buffer.add.remote(data)
-                done = False
                 obs, pos, local_buffer = self.reset()
-                # break
 
             self.counter += 1
-
-            # print("done",done)
 
             if self.counter == configs.actor_update_steps:
                 self.update_weights()
