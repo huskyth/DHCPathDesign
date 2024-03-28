@@ -7,7 +7,9 @@ import torch
 import numpy as np
 import ray
 
-from worker import GlobalBuffer, Learner, Actor
+from DHC.actor import Actor
+from DHC.learner import Learner
+from global_buffer import GlobalBuffer
 import configs
 
 os.environ["OMP_NUM_THREADS"] = "1"
