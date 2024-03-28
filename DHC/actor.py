@@ -10,7 +10,6 @@ from DHC.buffer import LocalBuffer
 from DHC.global_buffer import GlobalBuffer
 from DHC.learner import Learner
 from DHC.model import Network
-from DHC.utils.math_tool import epsilon_decay
 from DHC.utils.model_save_load_tool import RESUME_MODEL_NAME, model_load
 from dyn_environment import Environment
 
@@ -34,26 +33,21 @@ class Actor:
         self.learner = learner
         self.global_buffer = buffer
         self.max_episode_length = configs.max_episode_length
-        self.counter = 0
+        self.update_counter = 0
 
     def run(self):
         obs, pos, local_buffer = self.reset()
-        accumulate_reward_per_episode = 0
         while True:
-            # sample action
             actions, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(obs.astype(np.float32)),
                                                                 torch.from_numpy(pos.astype(np.float32)))
             if random.random() < self.epsilon:
                 # Note: only one agent do random action in order to keep the environment stable
                 actions[0] = np.random.randint(0, 5)
-            # take action in env
-            (next_obs, next_pos), rewards, done, _ = self.env.step(actions)  # 这里的reward是用上了的
+            (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
             local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, comm_mask)
-            accumulate_reward_per_episode += rewards[0]
             if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos
             else:
-                # finish and send buffer
                 if done:
                     data = local_buffer.finish()
                     print("done~~~")
@@ -62,23 +56,20 @@ class Actor:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
                     data = local_buffer.finish(q_val[0], comm_mask)
-                accumulate_reward_per_episode = 0
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()
 
-            self.counter += 1
+            self.update_counter += 1
 
-            if self.counter == configs.actor_update_steps:
+            if self.update_counter == configs.actor_update_steps:
                 self.update_weights()
-                self.counter = 0
+                self.update_counter = 0
 
     def update_weights(self):
         """load weights from learner"""
-        # update network parameters
         weights_id = ray.get(self.learner.get_weights.remote())
         weights = ray.get(weights_id)
         self.model.load_state_dict(weights)
-        # update environment settings set (number of agents and map size)
         new_env_settings_set = ray.get(self.global_buffer.get_env_settings.remote())
         self.env.update_env_settings_set(ray.get(new_env_settings_set))
 
