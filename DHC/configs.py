@@ -1,13 +1,10 @@
 communication = False
-# 10.101.104.49
 ############################################################
 ####################    environment     ####################
 ############################################################
 map_length = 50
-# num_agents = 2
 num_agents = 4
 obs_radius = 4
-# obs_radius = 1
 reward_fn = dict(move=-0.075,
                  stay_on_goal=0,
                  stay_off_goal=-0.075,
@@ -28,28 +25,18 @@ action_dim = 5
 ####################         DQN        ####################
 ############################################################
 
-# basic training setting
-# num_actors = 16
 num_actors = 16
 log_interval = 10
 training_times = 60000
-# training_times = 600
 save_interval = 2000
-# save_interval = 500
 gamma = 0.99
 batch_size = 512
 learning_starts = 50000
-# learning_starts = 50
 target_network_update_freq = 1000
-# target_network_update_freq = 20
 save_path = str(MODEL_FILE)
-# max_episode_length = 256
-# max_episode_length = 1024 #todo:需要修改
 max_episode_length = 512
 seq_len = 16
 load_model = None
-
-max_episode_length = max_episode_length
 
 actor_update_steps = 400
 
@@ -67,9 +54,8 @@ prioritized_replay_alpha = 0.6
 prioritized_replay_beta = 0.4
 
 # curriculum learning
-# init_env_settings = (1, 10)
-init_env_settings = (4, 10)  # 一维修改agent大小
-map_size = (56, 22)  # unity地图大小
+init_env_settings = (4, 10)
+map_size = (56, 22)
 # max_num_agents = 2
 max_num_agents = 4
 max_map_lenght = 40
