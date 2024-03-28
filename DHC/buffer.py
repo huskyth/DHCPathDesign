@@ -132,5 +132,7 @@ class LocalBuffer:
         q_val = self.q_buf[np.arange(self.size), self.act_buf]
         td_errors[:self.size] = np.abs(reward - q_val).clip(1e-4)
 
+        return_value = (self.rew_buf * 0.99 ** np.arange(0, self.size)).sum()
+
         return self.actor_id, self.num_agents, self.map_len, self.obs_buf, self.act_buf, \
-            self.rew_buf, self.hid_buf, td_errors, done, self.size, self.comm_mask_buf
+            self.rew_buf, self.hid_buf, td_errors, done, self.size, self.comm_mask_buf, return_value

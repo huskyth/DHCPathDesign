@@ -17,15 +17,27 @@ torch.manual_seed(2022)
 np.random.seed(2022)
 random.seed(2022)
 
+DEBUG_MODE = True
+
+
+def ray_init():
+    if not DEBUG_MODE:
+        ray.init()
+    else:
+        ray.init(local_mode=True)
+
+
+def epsilon():
+    return -1 if not DEBUG_MODE else -1 + 1e-5
+
 
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
-    ray.init()
-    # ray.init(local_mode=True)
+    ray_init()
     buffer = GlobalBuffer.remote()
-    my_summary = MySummary.remote(use_wandb=False)
+    my_summary = MySummary.remote(use_wandb=not DEBUG_MODE)
     learner = Learner.remote(buffer=buffer, summary=my_summary)
     time.sleep(1)
-    actors = [Actor.remote(i, 0.4 ** (1 + (i / (num_actors - 1)) * 7),
+    actors = [Actor.remote(i, 0.4 ** (1 + (i / (num_actors + epsilon())) * 7),
                            learner, buffer, my_summary) for i in range(num_actors)]
 
     for actor in actors:
