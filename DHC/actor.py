@@ -12,13 +12,12 @@ from DHC.learner import Learner
 from DHC.model import Network
 from DHC.utils.math_tool import epsilon_decay
 from DHC.utils.model_save_load_tool import RESUME_MODEL_NAME, model_load
-from DHC.utils.visual import init_summary_writer, plot
 from dyn_environment import Environment
 
 
 @ray.remote(num_cpus=1)
 class Actor:
-    def __init__(self, opt, worker_id: int, epsilon: float, learner: Learner, buffer: GlobalBuffer):
+    def __init__(self, worker_id: int, epsilon: float, learner: Learner, buffer: GlobalBuffer):
         self.id = worker_id
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
@@ -36,18 +35,15 @@ class Actor:
         self.global_buffer = buffer
         self.max_episode_length = configs.max_episode_length
         self.counter = 0
-        self.writer = init_summary_writer()
 
     def run(self):
         obs, pos, local_buffer = self.reset()
-        epsilon_count = 0
         accumulate_reward_per_episode = 0
         while True:
-            epsilon_use = epsilon_decay(self.epsilon, epsilon_count)
             # sample action
             actions, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(obs.astype(np.float32)),
                                                                 torch.from_numpy(pos.astype(np.float32)))
-            if random.random() < epsilon_use:
+            if random.random() < self.epsilon:
                 # Note: only one agent do random action in order to keep the environment stable
                 actions[0] = np.random.randint(0, 5)
             # take action in env
@@ -66,8 +62,6 @@ class Actor:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
                     data = local_buffer.finish(q_val[0], comm_mask)
-                plot(self.writer, epsilon_count + 1, accumulate_reward_per_episode, 'Reward per episode')
-                epsilon_count += 1
                 accumulate_reward_per_episode = 0
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()

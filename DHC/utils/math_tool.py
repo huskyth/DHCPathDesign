@@ -17,10 +17,6 @@ x_translation = lambda x: mh.log((1 - x) / x)
 X_VARIATION = 5000
 
 
-def epsilon_decay(initial_epsilon, counter):
-    return 1 / (1 + mh.e ** (counter / X_VARIATION + x_translation(initial_epsilon)))
-
-
 def rank_agent_by_distance(agent_position, target_position):
     assert len(agent_position) == len(target_position)
     d = {}
