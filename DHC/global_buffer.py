@@ -10,8 +10,9 @@ import torch
 
 @ray.remote(num_cpus=1)
 class GlobalBuffer:
-    def __init__(self, episode_capacity=configs.episode_capacity, local_buffer_capacity=configs.max_episode_length,
-                 init_env_settings=configs.init_env_settings, max_comm_agents=configs.max_comm_agents,
+    def __init__(self, episode_capacity=configs.episode_capacity,
+                 local_buffer_capacity=configs.max_episode_length,
+                 init_env_settings=configs.init_env_settings,
                  alpha=configs.prioritized_replay_alpha, beta=configs.prioritized_replay_beta):
 
         self.capacity = episode_capacity
@@ -71,7 +72,8 @@ class GlobalBuffer:
 
     def add(self, data: Tuple):
         '''
-        data: actor_id 0, num_agents 1, map_len 2, obs_buf 3, act_buf 4, rew_buf 5, hid_buf 6, td_errors 7, done 8, size 9, comm_mask 10
+        data: actor_id 0, num_agents 1, map_len 2, obs_buf 3, act_buf 4, rew_buf 5,
+         hid_buf 6, td_errors 7, done 8, size 9, comm_mask 10
         '''
         if data[0] >= 12:
             stat_key = (data[1], data[2])
@@ -81,7 +83,8 @@ class GlobalBuffer:
                     self.stat_dict[stat_key].pop(0)
 
         with self.lock:
-            idxes = np.arange(self.ptr * self.local_buffer_capacity, (self.ptr + 1) * self.local_buffer_capacity)
+            idxes = np.arange(self.ptr * self.local_buffer_capacity,
+                              (self.ptr + 1) * self.local_buffer_capacity)
             start_idx = self.ptr * self.local_buffer_capacity
             # update buffer size
             self.size -= self.size_buf[self.ptr].item()
@@ -97,7 +100,8 @@ class GlobalBuffer:
             self.done_buf[self.ptr] = data[8]
             self.size_buf[self.ptr] = data[9]
             self.comm_mask_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1] = 0
-            self.comm_mask_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1], :data[1]] = data[10]
+            self.comm_mask_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1,
+            :data[1], :data[1]] = data[10]
 
             self.ptr = (self.ptr + 1) % self.capacity
 
@@ -111,28 +115,33 @@ class GlobalBuffer:
             global_idxes = idxes // self.local_buffer_capacity
             local_idxes = idxes % self.local_buffer_capacity
 
-            for idx, global_idx, local_idx in zip(idxes.tolist(), global_idxes.tolist(), local_idxes.tolist()):
+            for idx, global_idx, local_idx in zip(idxes.tolist(), global_idxes.tolist(),
+                                                  local_idxes.tolist()):
 
-                assert local_idx < self.size_buf[global_idx], 'index is {} but size is {}'.format(local_idx,
-                                                                                                  self.size_buf[
-                                                                                                      global_idx])
+                assert local_idx < self.size_buf[global_idx], 'index is {} but size is {}' \
+                    .format(local_idx, self.size_buf[global_idx])
 
                 steps = min(configs.forward_steps, (self.size_buf[global_idx].item() - local_idx))
                 seq_len = min(local_idx + 1, configs.seq_len)
 
                 if local_idx < configs.seq_len - 1:
-                    obs = self.obs_buf[global_idx * (self.local_buffer_capacity + 1):idx + global_idx + 1 + steps]
+                    obs = self.obs_buf[global_idx * (self.local_buffer_capacity + 1):
+                                       idx + global_idx + 1 + steps]
                     comm_mask = self.comm_mask_buf[
-                                global_idx * (self.local_buffer_capacity + 1):idx + global_idx + 1 + steps]
+                                global_idx * (self.local_buffer_capacity + 1):
+                                idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
                 elif local_idx == configs.seq_len - 1:
-                    obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:idx + global_idx + 1 + steps]
-                    comm_mask = self.comm_mask_buf[
-                                global_idx * (self.local_buffer_capacity + 1):idx + global_idx + 1 + steps]
+                    obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:
+                                       idx + global_idx + 1 + steps]
+                    comm_mask = self.comm_mask_buf[global_idx * (self.local_buffer_capacity + 1)
+                                                   :idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
                 else:
-                    obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:idx + global_idx + 1 + steps]
-                    comm_mask = self.comm_mask_buf[idx + global_idx + 1 - configs.seq_len:idx + global_idx + 1 + steps]
+                    obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:
+                                       idx + global_idx + 1 + steps]
+                    comm_mask = self.comm_mask_buf[idx + global_idx + 1 - configs.seq_len:
+                                                   idx + global_idx + 1 + steps]
                     hidden = self.hid_buf[idx - configs.seq_len]
 
                 if obs.shape[0] < configs.seq_len + configs.forward_steps:
@@ -144,7 +153,8 @@ class GlobalBuffer:
                 for i in range(steps):
                     reward += self.rew_buf[idx + i] * 0.99 ** i
 
-                if self.done_buf[global_idx] and local_idx >= self.size_buf[global_idx] - configs.forward_steps:
+                if self.done_buf[global_idx] and local_idx >= self.size_buf[global_idx] \
+                        - configs.forward_steps:
                     done = True
                 else:
                     done = False
@@ -185,12 +195,14 @@ class GlobalBuffer:
             # discard the indices that already been discarded in replay buffer during training
             if self.ptr > old_ptr:
                 # range from [old_ptr, self.ptr)
-                mask = (idxes < old_ptr * self.local_buffer_capacity) | (idxes >= self.ptr * self.local_buffer_capacity)
+                mask = (idxes < old_ptr * self.local_buffer_capacity) | \
+                       (idxes >= self.ptr * self.local_buffer_capacity)
                 idxes = idxes[mask]
                 priorities = priorities[mask]
             elif self.ptr < old_ptr:
                 # range from [0, self.ptr) & [old_ptr, self,capacity)
-                mask = (idxes < old_ptr * self.local_buffer_capacity) & (idxes >= self.ptr * self.local_buffer_capacity)
+                mask = (idxes < old_ptr * self.local_buffer_capacity) & \
+                       (idxes >= self.ptr * self.local_buffer_capacity)
                 idxes = idxes[mask]
                 priorities = priorities[mask]
 

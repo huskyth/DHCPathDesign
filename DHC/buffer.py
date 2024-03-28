@@ -74,8 +74,8 @@ class LocalBuffer:
         self.map_len = map_len
 
         self.obs_buf = np.zeros((capacity + 1, num_agents, *obs_shape), dtype=np.bool)
-        self.act_buf = np.zeros((capacity), dtype=np.uint8)
-        self.rew_buf = np.zeros((capacity), dtype=np.float16)
+        self.act_buf = np.zeros(capacity, dtype=np.uint8)
+        self.rew_buf = np.zeros(capacity, dtype=np.float16)
         self.hid_buf = np.zeros((capacity, num_agents, hidden_dim), dtype=np.float16)
         self.comm_mask_buf = np.zeros((capacity + 1, num_agents, num_agents), dtype=np.bool)
         self.q_buf = np.zeros((capacity + 1, action_dim), dtype=np.float32)
