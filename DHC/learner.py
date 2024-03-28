@@ -37,11 +37,11 @@ class Learner:
         self.buffer = buffer
 
         self.done = False
+        self.weights_id = None
 
         self.store_weights()
 
         self.learning_thread = None
-        self.weights_id = None
 
         self.my_summary = summary
 
