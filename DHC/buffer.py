@@ -16,20 +16,21 @@ class SumTree:
         self.size = 0
 
     def sum(self):
-        assert np.sum(self.tree[-self.capacity:]) - self.tree[0] < 0.1, 'sum is {} but root is {}'.format(
-            np.sum(self.tree[-self.capacity:]), self.tree[0])
+        assert np.sum(self.tree[-self.capacity:]) - self.tree[0] < 0.1, \
+            'sum is {} but root is {}'.format(
+                np.sum(self.tree[-self.capacity:]), self.tree[0])
         return self.tree[0]
 
     def __getitem__(self, idx: int):
         assert 0 <= idx < self.capacity
-
         return self.tree[self.capacity - 1 + idx]
 
     def batch_sample(self, batch_size: int):
         p_sum = self.tree[0]
         interval = p_sum / batch_size
 
-        prefixsums = np.arange(0, p_sum, interval, dtype=np.float64) + np.random.uniform(0, interval, batch_size)
+        prefixsums = np.arange(0, p_sum, interval, dtype=np.float64) + \
+                     np.random.uniform(0, interval, batch_size)
 
         idxes = np.zeros(batch_size, dtype=np.int)
         for _ in range(self.layer - 1):
@@ -55,8 +56,9 @@ class SumTree:
             self.tree[idxes] = self.tree[2 * idxes + 1] + self.tree[2 * idxes + 2]
 
         # check
-        assert np.sum(self.tree[-self.capacity:]) - self.tree[0] < 0.1, 'sum is {} but root is {}'.format(
-            np.sum(self.tree[-self.capacity:]), self.tree[0])
+        assert np.sum(self.tree[-self.capacity:]) - self.tree[0] < 0.1, \
+            'sum is {} but root is {}'.format(
+                np.sum(self.tree[-self.capacity:]), self.tree[0])
 
 
 class LocalBuffer:
@@ -88,7 +90,8 @@ class LocalBuffer:
     def __len__(self):
         return self.size
 
-    def add(self, q_val: np.ndarray, action: int, reward: float, next_obs: np.ndarray, hidden: np.ndarray,
+    def add(self, q_val: np.ndarray, action: int, reward: float, next_obs: np.ndarray,
+            hidden: np.ndarray,
             comm_mask: np.ndarray):
         assert self.size < self.capacity
 
@@ -124,9 +127,10 @@ class LocalBuffer:
         gamma = np.array([0.99 ** min(configs.forward_steps, self.size - i) for i in range(self.size)])
         q_max = np.max(self.q_buf[q_max_idx], axis=1) * gamma
         ret = self.rew_buf.tolist() + [0 for _ in range(configs.forward_steps - 1)]
-        reward = np.convolve(ret, [0.99 ** (configs.forward_steps - 1 - i) for i in range(configs.forward_steps)],
-                             'valid') + q_max
+        reward = np.convolve(ret, [0.99 ** (configs.forward_steps - 1 - i) for i in
+                                   range(configs.forward_steps)], 'valid') + q_max
         q_val = self.q_buf[np.arange(self.size), self.act_buf]
         td_errors[:self.size] = np.abs(reward - q_val).clip(1e-4)
 
-        return self.actor_id, self.num_agents, self.map_len, self.obs_buf, self.act_buf, self.rew_buf, self.hid_buf, td_errors, done, self.size, self.comm_mask_buf
+        return self.actor_id, self.num_agents, self.map_len, self.obs_buf, self.act_buf, \
+            self.rew_buf, self.hid_buf, td_errors, done, self.size, self.comm_mask_buf

@@ -14,7 +14,7 @@ from dyn_environment import Environment
 
 @ray.remote(num_cpus=1)
 class Actor:
-    def __init__(self, worker_id: int, epsilon: float, learner: Learner, buffer: GlobalBuffer):
+    def __init__(self, worker_id: int, epsilon: float, learner: Learner, buffer: GlobalBuffer, summary):
         self.id = worker_id
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
@@ -26,6 +26,8 @@ class Actor:
         self.global_buffer = buffer
         self.max_episode_length = configs.max_episode_length
         self.update_counter = 0
+
+        self.my_summary = summary
 
     def run(self):
         obs, pos, local_buffer = self.reset()
