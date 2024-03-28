@@ -1,32 +1,20 @@
-'''create test set and test model'''
-'''create test set and test model'''
-import random
 import pickle
-import multiprocessing as mp
-from typing import Union
 from tqdm import tqdm
 import numpy as np
-import torch
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from dyn_environment import Environment
 from model import Network
 import configs
-from construct_map.transform2coor import transform2coor
 import time
 import os
 from utils.model_save_load_tool import *
 
-# torch.manual_seed(configs.test_seed)
-# np.random.seed(configs.test_seed)
-# random.seed(configs.test_seed)
 test_num = 200
 device = 'cpu'
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.set_num_threads(1)
 
 
-# 测试用例，要用到
 def test_model(model_name):
     '''
     test model in 'models' file with model number
@@ -38,22 +26,9 @@ def test_model(model_name):
     state_dict = model_load(weight_file, device)
     network.load_state_dict(state_dict['model_state'])
     network.eval()
-    network.share_memory()  # 允许数据处于一种特殊的状态，可以在不需要拷贝的情况下，任何进程都可以直接使用该数据
+    network.share_memory()
 
     print('----------test model {}----------'.format(model_name))
-
-    # 进行测试
-    is_finish, steps = test_one_case(network)
-    # print(ret)
-
-    # success = 0
-    # avg_step = 0
-    # for i, j in ret:
-    #     success += i
-    #     avg_step += j
-    #
-    # print("success rate: {:.2f}%".format(success / len(ret) * 100))
-    # print("average step: {}".format(avg_step / len(ret)))
 
 
 def test_one_case(network):
@@ -69,14 +44,9 @@ def test_one_case(network):
         # todo:传回action
         actions, q_val, hidden, comm_mask = network.step(torch.as_tensor(obs.astype(np.float32)),
                                                          torch.as_tensor(pos.astype(np.float32)))
-        # 转换到unity坐标系
-        start, goal = transform2coor(env.agents_pos, env.goals_pos)
-        # action，env.agents_pos，env.goals_pos需要传给unity
-        # print("actions:", actions, "\nstart pos:", list(start), "\ngoal pos:", list(goal))
 
-        (obs, pos), rew, done, info = env.step(actions)  # reward没有用上
+        (obs, pos), rew, done, info = env.step(actions)
         step += 1
-    # 是否达到终点、走了多少步
     return np.array_equal(env.agents_pos, env.goals_pos), step
 
 
@@ -154,7 +124,6 @@ def make_animation(model_name, steps: int = 1000):
 
     ani = animation.ArtistAnimation(fig, imgs, interval=600, blit=True, repeat_delay=1000)
 
-    # ani.save('videos/{}_{}_{}_{}.mp4'.format(model_name, *test_set_name))
     ticks = time.strftime("%Y-%m-%d-%H-%M", time.localtime())
     ani.save('videos/{}.gif'.format(ticks))
 
@@ -194,14 +163,6 @@ def test_while_training(network, num=100):
 
 
 if __name__ == '__main__':
-    # create_test(test_env_settings=configs.test_env_settings, num_test_cases=configs.num_test_cases)
     test_model(TEST_MODEL_NAME)
     make_animation(model_name=TEST_MODEL_NAME)
-    # test_while_training()
     network = Network()
-    # weight_file = os.path.join(configs.save_path, TEST_MODEL_NAME)
-    # state_dict = model_load(weight_file, device)
-    # print('test model {}'.format(TEST_MODEL_NAME))
-    # network.load_state_dict(state_dict['model_state'])
-    # avg_finish, avg_step = test_while_training(network, 1000)
-    # print('avg_finish = {}, avg_step = {}'.format(avg_finish, avg_step))
