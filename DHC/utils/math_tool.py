@@ -11,7 +11,6 @@ file = str(FILE.parent)
 if file not in sys.path:
     sys.path.append(file)
 
-# from visual import *
 from coordinate_tool import *
 
 x_translation = lambda x: mh.log((1 - x) / x)
@@ -35,10 +34,6 @@ def rank_agent_by_distance(agent_position, target_position):
 
 if __name__ == '__main__':
     x_test = np.arange(0, 50000, 1)
-    # w = init_summary_writer('test')
-    # for x in x_test:
-    #     plot(w, x, epsilon_decay(0.4, x), 'test_spsilon')
-    # w.close()
     agents_pos = np.empty((4, 2), dtype=np.int)
     goals_pos = np.empty((4, 2), dtype=np.int)
     for x in range(4):

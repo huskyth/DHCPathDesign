@@ -1,8 +1,5 @@
 import numpy as np
-import pandas as pd
-import re
 import math
-from matplotlib import pyplot as plt
 
 
 def readfile(filepath):
@@ -30,24 +27,10 @@ def readfile(filepath):
                     i = i + 5
                 map['obstacles'] = obstacle_coors
 
-            # if lines[i].strip() == 'Exhibitions:':
-            #     i = i+1
-            #     exhibition_coors = []
-            #     while i < (len(lines)):
-            #         exhibition_coor = (lines[i:i + 4])
-            #         exhibition_coor = [list(eval(x.strip())) for x in exhibition_coor]
-            #         exhibition_coors.append(exhibition_coor)
-            #         i = i + 5
-            # map['exhibition'] = exhibition_coors
             return map
 
 
-def visual(map_data):
-    fig = plt.figure(figsize=(5.5, 2))
-
-
 def grid(map_data, agent_size=0.5):
-    # 根据地图大小和agent大小栅格化
     plane = map_data['plane'][0]
     plane_left_bottom = (plane[0][0], plane[0][-1])
     plane_right_top = (plane[2][0], plane[2][-1])
@@ -59,14 +42,11 @@ def grid(map_data, agent_size=0.5):
     columns = math.ceil(plane_length / agent_size)
 
     map_init = np.zeros((rows, columns), dtype=np.int)
-    # 填充障碍物
     obstacles = map_data['obstacles']
     for obstacle in obstacles:
-        # 计算障碍物位置坐标
         obs_left_bottom = (obstacle[0][0], obstacle[0][-1])
         obs_right_top = (obstacle[2][0], obstacle[2][-1])
 
-        # 占的行数和占的列数;
         relative_rpos = math.ceil((plane_right_top[1] - obs_right_top[1]) / agent_size) - 1
         relative_cpos = math.ceil((obs_left_bottom[0] - plane_left_bottom[0]) / agent_size) - 1
 
@@ -81,7 +61,5 @@ def grid(map_data, agent_size=0.5):
 
 if __name__ == '__main__':
     filepath = 'coordinate.txt'
-    # 读取数据
     map_data = readfile(filepath)
-    # 根据地图大小和agent大小栅格化
     map_matrix = grid(map_data, agent_size=0.5)

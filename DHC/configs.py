@@ -56,7 +56,6 @@ prioritized_replay_beta = 0.4
 # curriculum learning
 init_env_settings = (4, 10)
 map_size = (56, 22)
-# max_num_agents = 2
 max_num_agents = 4
 max_map_lenght = 40
 pass_rate = 0.9

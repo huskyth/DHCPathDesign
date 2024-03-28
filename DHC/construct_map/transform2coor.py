@@ -1,10 +1,8 @@
 def transform2coor(start, goal, planepath='construct_map/coordinate.txt'):
-    # 首先要读取原始地板的坐标，再计算相对位置
     with open(planepath, "r") as file:
         lines = file.readlines()
         plane_coor = (lines[1: 5])
         plane_coor = [list(eval(x.strip())) for x in plane_coor]
-    # 获取plane上下左右的坐标
     plane_left_bottom = (plane_coor[0][0], plane_coor[0][-1])
     plane_right_top = (plane_coor[2][0], plane_coor[2][-1])
     start_coor = []

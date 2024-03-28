@@ -1,8 +1,5 @@
 import torch
 
-# RESUME_MODEL_NAME = None
-
-
 RESUME_MODEL_NAME = ''
 TEST_MODEL_NAME = '2022-10-26-18-12000-0.86.pth'
 

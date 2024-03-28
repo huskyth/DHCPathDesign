@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -21,29 +20,23 @@ repetation1 = np.array([14.92, 14.91, 14.94, 14.82, 14.86, 14.91, 14.91])  # stg
 repetation2 = np.array([14.86, 14.82, 14.80, 14.72, 14.81, 14.82, 14.84])  # stgsp+ssl
 mae_repetation1 = np.array([8.82, 8.87, 8.83, 8.86, 8.80])
 mae_repetation2 = np.array([8.79, 8.76, 8.80, 8.79, 8.78])
-f, (ax1, ax3) = plt.subplots(1, 2, figsize=(9,4), sharex=False)
+f, (ax1, ax3) = plt.subplots(1, 2, figsize=(9, 4), sharex=False)
 
-# sns.lineplot(x=x1, y=nlayers1, palette="coolwarm", ax=ax1, ci=None, markers="o")
-ax1.plot(x1,nlayers1,marker="o",label=r"$ d_{model}:64 $",linestyle = ':')
-ax1.plot(x1,nlayers2,marker="v",label=r"$ d_{model}:128 $",linestyle = '-.')
-ax1.plot(x1,nlayers3,marker="x",label=r"$ d_{model}:256 $",linestyle = '--')
+ax1.plot(x1, nlayers1, marker="o", label=r"$ d_{model}:64 $", linestyle=':')
+ax1.plot(x1, nlayers2, marker="v", label=r"$ d_{model}:128 $", linestyle='-.')
+ax1.plot(x1, nlayers3, marker="x", label=r"$ d_{model}:256 $", linestyle='--')
 ax1.legend()
-ax1.grid(True,linestyle='dotted')
-# ax1.set_xlabel("Transformer Encoder Layer")
+ax1.grid(True, linestyle='dotted')
 ax1.set_ylabel("RMSE")
-ax1.set_title("(a) Transformer Encoder Layer",y=-0.2)
+ax1.set_title("(a) Transformer Encoder Layer", y=-0.2)
 
-ax3.plot(x2,repetation1,marker="o",label="ST-GSP",linestyle = '-.')
-ax3.plot(x2,repetation2,marker="v",label="ST-GSP+SSL",linestyle = '--')
+ax3.plot(x2, repetation1, marker="o", label="ST-GSP", linestyle='-.')
+ax3.plot(x2, repetation2, marker="v", label="ST-GSP+SSL", linestyle='--')
 ax3.legend(loc="upper right")
-ax3.grid(True,linestyle='dotted')
-# ax3.set_xlabel("Residual Unit Number")
+ax3.grid(True, linestyle='dotted')
 ax3.set_ylabel("RMSE")
 ax3.set_ylim([14.70, 14.97])
-ax3.set_title("(b) Residual Unit Number",y=-0.2)
+ax3.set_title("(b) Residual Unit Number", y=-0.2)
 
-# sns.lineplot(x=x2, y=repetation1, palette="coolwarm", ax=ax3, ci=None, markers="o")
-# ax3.xaxis.set_major_formatter(mtick.PercentFormatter())
-# ax3.set_xticklabels(ticks2)
 plt.subplots_adjust(wspace=0.25, bottom=0.14)
 plt.show()

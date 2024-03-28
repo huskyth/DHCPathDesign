@@ -29,10 +29,6 @@ def grid2coord(position):
     return x, y, is_in
 
 
-# x = [[0, 0], [55, 0], [0, 21], [55, 21]]
-# for i in x:
-#     print(i, grid2coord(i))
-
 # 计算向量之间夹角
 def cal_cos_between_2_vector(x1, y1, x2, y2):
     return x1 * x2 + y1 * y2

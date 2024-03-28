@@ -8,10 +8,3 @@ def print_process_info(id):
     t = threading.currentThread()
     print('Thread id : %d' % t.ident)
     print('actor id = ', id)
-
-#
-# import torch
-#
-# print(torch.__version__)
-# print(torch.cuda.is_available())
-# print(torch.cuda.device_count())
