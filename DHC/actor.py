@@ -1,4 +1,3 @@
-import os
 import random
 
 import numpy as np
@@ -10,7 +9,6 @@ from DHC.buffer import LocalBuffer
 from DHC.global_buffer import GlobalBuffer
 from DHC.learner import Learner
 from DHC.model import Network
-from DHC.utils.model_save_load_tool import RESUME_MODEL_NAME, model_load
 from dyn_environment import Environment
 
 
@@ -20,12 +18,6 @@ class Actor:
         self.id = worker_id
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
-
-        if RESUME_MODEL_NAME:
-            self.weight_file = os.path.join(configs.save_path, RESUME_MODEL_NAME)
-            self.state = model_load(self.weight_file, self.device)
-            print('lode model from {}'.format(RESUME_MODEL_NAME))
-            self.model.load_state_dict(self.state['model_state'])
 
         self.model.eval()
         self.env = Environment(curriculum=False)
