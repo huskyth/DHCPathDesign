@@ -30,8 +30,8 @@ def rank_agent_by_distance(agent_position, target_position):
 
 if __name__ == '__main__':
     x_test = np.arange(0, 50000, 1)
-    agents_pos = np.empty((4, 2), dtype=np.int)
-    goals_pos = np.empty((4, 2), dtype=np.int)
+    agents_pos = np.empty((4, 2), dtype=int)
+    goals_pos = np.empty((4, 2), dtype=int)
     for x in range(4):
         agents_pos[x][0], agents_pos[x][1] = random.randint(0, 3), random.randint(0, 3)
         goals_pos[x][0], goals_pos[x][1] = random.randint(0, 3), random.randint(0, 3)

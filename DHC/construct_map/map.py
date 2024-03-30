@@ -41,7 +41,7 @@ def grid(map_data, agent_size=0.5):
     rows = math.ceil(plane_width / agent_size)
     columns = math.ceil(plane_length / agent_size)
 
-    map_init = np.zeros((rows, columns), dtype=np.int)
+    map_init = np.zeros((rows, columns), dtype=int)
     obstacles = map_data['obstacles']
     for obstacle in obstacles:
         obs_left_bottom = (obstacle[0][0], obstacle[0][-1])

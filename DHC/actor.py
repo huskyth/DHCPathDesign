@@ -9,7 +9,7 @@ from DHC.buffer import LocalBuffer
 from DHC.global_buffer import GlobalBuffer
 from DHC.learner import Learner
 from DHC.model import Network
-from dyn_environment import Environment
+from environment import Environment
 
 
 @ray.remote(num_cpus=1)
@@ -52,8 +52,9 @@ class Actor:
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
                     data = local_buffer.finish(q_val[0], comm_mask)
                 return_value = data[-1]
-                self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
-                                          x_name=f"{self.id}_epoch")
+                if self.id == 0:
+                    self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
+                                                     x_name=f"{self.id}_epoch")
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()
                 self.epoch += 1

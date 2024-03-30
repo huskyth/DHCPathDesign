@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 plt.ion()
 import configs
 
-action_list = np.array([[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], dtype=np.int)
+action_list = np.array([[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], dtype=int)
 
 color_map = np.array([[255, 255, 255],  # white
                       [190, 190, 190],  # gray
@@ -19,7 +19,7 @@ def map_partition(map):
     '''
     partitioning map into independent partitions 
     '''
-    empty_pos = np.argwhere(map == 0).astype(np.int).tolist()
+    empty_pos = np.argwhere(map == 0).astype(int).tolist()
 
     empty_pos = [tuple(pos) for pos in empty_pos]
 
@@ -89,18 +89,18 @@ class Environment:
             self.fix_density = True
             self.obstacle_density = fix_density
         self.map = np.random.choice(2, self.map_size, p=[1 - self.obstacle_density, self.obstacle_density]).astype(
-            np.int)
+            int)
 
         partition_list = map_partition(self.map)
         partition_list = [partition for partition in partition_list if len(partition) >= 2]
         while len(partition_list) == 0:
             self.map = np.random.choice(2, self.map_size, p=[1 - self.obstacle_density, self.obstacle_density]).astype(
-                np.int)
+                int)
             partition_list = map_partition(self.map)
             partition_list = [partition for partition in partition_list if len(partition) >= 2]
 
-        self.agents_pos = np.empty((self.num_agents, 2), dtype=np.int)
-        self.goals_pos = np.empty((self.num_agents, 2), dtype=np.int)
+        self.agents_pos = np.empty((self.num_agents, 2), dtype=int)
+        self.goals_pos = np.empty((self.num_agents, 2), dtype=int)
         pos_num = sum([len(partition) for partition in partition_list])
 
         # loop to assign agent original position and goal position for each agent
@@ -117,11 +117,11 @@ class Environment:
 
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.agents_pos[i] = np.asarray(pos, dtype=np.int)
+            self.agents_pos[i] = np.asarray(pos, dtype=int)
 
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.goals_pos[i] = np.asarray(pos, dtype=np.int)
+            self.goals_pos[i] = np.asarray(pos, dtype=int)
 
             partition_list = [partition for partition in partition_list if len(partition) >= 2]
             pos_num = sum([len(partition) for partition in partition_list])
@@ -159,8 +159,8 @@ class Environment:
         partition_list = map_partition(self.map)
         partition_list = [partition for partition in partition_list if len(partition) >= 2]
 
-        self.agents_pos = np.empty((self.num_agents, 2), dtype=np.int)
-        self.goals_pos = np.empty((self.num_agents, 2), dtype=np.int)
+        self.agents_pos = np.empty((self.num_agents, 2), dtype=int)
+        self.goals_pos = np.empty((self.num_agents, 2), dtype=int)
 
         pos_num = sum([len(partition) for partition in partition_list])
 
@@ -177,11 +177,11 @@ class Environment:
 
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.agents_pos[i] = np.asarray(pos, dtype=np.int)
+            self.agents_pos[i] = np.asarray(pos, dtype=int)
 
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.goals_pos[i] = np.asarray(pos, dtype=np.int)
+            self.goals_pos[i] = np.asarray(pos, dtype=int)
 
             partition_list = [partition for partition in partition_list if len(partition) >= 2]
             pos_num = sum([len(partition) for partition in partition_list])

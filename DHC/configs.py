@@ -34,7 +34,7 @@ batch_size = 512
 learning_starts = 50000
 target_network_update_freq = 1000
 save_path = str(MODEL_FILE)
-max_episode_length = 512
+max_episode_length = 512 * 8
 seq_len = 16
 load_model = None
 
