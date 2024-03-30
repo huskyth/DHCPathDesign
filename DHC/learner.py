@@ -66,7 +66,7 @@ class Learner:
             step_length = 10000
             for i in range(1, step_length):
                 current_x = i + step_length * (epoch - 1)
-                self.my_summary.add_float(x=current_x, y=i, title="Step", x_name="Step")
+                self.my_summary.add_float.remote(x=current_x, y=i, title="Step", x_name="Step")
                 data_id = ray.get(self.buffer.get_data.remote())
                 data = ray.get(data_id)
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
@@ -99,7 +99,7 @@ class Learner:
                 self.optimizer.zero_grad()
                 scaler.scale(loss).backward()
 
-                self.my_summary.add_float(x=current_x, y=loss.item(), title="Loss", x_name="Step")
+                self.my_summary.add_float.remote(x=current_x, y=loss.item(), title="Loss", x_name="Step")
 
                 scaler.unscale_(self.optimizer)
                 nn.utils.clip_grad_norm_(self.model.parameters(), 40)

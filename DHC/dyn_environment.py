@@ -19,7 +19,7 @@ actions:
         3 left
         4 right
 '''
-action_list = np.array([[0, 0], [0, 1], [0, -1], [-1, 0], [1, 0]], dtype=np.int)
+action_list = np.array([[0, 0], [0, 1], [0, -1], [-1, 0], [1, 0]], dtype=int)
 
 color_map = np.array([[255, 255, 255],  # white
                       [190, 190, 190],  # gray
@@ -33,7 +33,7 @@ def map_partition(map):
     partitioning map into independent partitions
     把可行区域提取出来
     """
-    empty_pos = np.argwhere(map == 0).astype(np.int).tolist()
+    empty_pos = np.argwhere(map == 0).astype(int).tolist()
 
     empty_pos = [tuple(pos) for pos in empty_pos]
 
@@ -109,8 +109,8 @@ class Environment:
         partition_list = map_partition(self.map)
         partition_list = [partition for partition in partition_list if len(partition) >= 2]
 
-        self.agents_pos = np.empty((self.num_agents, 2), dtype=np.int)
-        self.goals_pos = np.empty((self.num_agents, 2), dtype=np.int)
+        self.agents_pos = np.empty((self.num_agents, 2), dtype=int)
+        self.goals_pos = np.empty((self.num_agents, 2), dtype=int)
         pos_num = sum([len(partition) for partition in partition_list])
 
         # loop to assign agent original position and goal position for each agent
@@ -127,14 +127,14 @@ class Environment:
 
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.agents_pos[i] = np.asarray(pos, dtype=np.int)
+            self.agents_pos[i] = np.asarray(pos, dtype=int)
 
             x, y, is_in = grid2coord(self.agents_pos[i])
             if not is_in:
                 assert is_in, 'agent id = {}, start position = {}, is in Plane = {}'.format(i, [x, y], is_in)
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.goals_pos[i] = np.asarray(pos, dtype=np.int)
+            self.goals_pos[i] = np.asarray(pos, dtype=int)
 
             partition_list = [partition for partition in partition_list if len(partition) >= 2]
             pos_num = sum([len(partition) for partition in partition_list])
@@ -144,7 +144,7 @@ class Environment:
         self.reward_fn = reward_fn
         self.get_heuri_map()
         self.steps = 0
-        self.last_actions = np.zeros((self.num_agents, 5, 2 * obs_radius + 1, 2 * obs_radius + 1), dtype=np.bool)
+        self.last_actions = np.zeros((self.num_agents, 5, 2 * obs_radius + 1, 2 * obs_radius + 1), dtype=bool)
 
     def update_env_settings_set(self, new_env_settings_set):
         self.env_set = new_env_settings_set
@@ -169,8 +169,8 @@ class Environment:
         partition_list = map_partition(self.map)
         partition_list = [partition for partition in partition_list if len(partition) >= 2]
 
-        self.agents_pos = np.empty((self.num_agents, 2), dtype=np.int)
-        self.goals_pos = np.empty((self.num_agents, 2), dtype=np.int)
+        self.agents_pos = np.empty((self.num_agents, 2), dtype=int)
+        self.goals_pos = np.empty((self.num_agents, 2), dtype=int)
 
         pos_num = sum([len(partition) for partition in partition_list])
 
@@ -187,11 +187,11 @@ class Environment:
 
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.agents_pos[i] = np.asarray(pos, dtype=np.int)
+            self.agents_pos[i] = np.asarray(pos, dtype=int)
 
             pos = random.choice(partition_list[partition_idx])
             partition_list[partition_idx].remove(pos)
-            self.goals_pos[i] = np.asarray(pos, dtype=np.int)
+            self.goals_pos[i] = np.asarray(pos, dtype=int)
 
             partition_list = [partition for partition in partition_list if len(partition) >= 2]
             pos_num = sum([len(partition) for partition in partition_list])
@@ -200,7 +200,7 @@ class Environment:
         self.get_heuri_map()
 
         self.last_actions = np.zeros((self.num_agents, 5, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1),
-                                     dtype=np.bool)
+                                     dtype=bool)
 
         return self.observe()
 
@@ -220,7 +220,7 @@ class Environment:
         self.get_heuri_map()
 
         self.last_actions = np.zeros((self.num_agents, 5, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1),
-                                     dtype=np.bool)
+                                     dtype=bool)
 
     def get_heuri_map(self):
         # 每个agent都有
@@ -259,7 +259,7 @@ class Environment:
                     if right not in open_list:
                         open_list.append(right)
 
-        self.heuri_map = np.zeros((self.num_agents, 4, *self.map_size), dtype=np.bool)
+        self.heuri_map = np.zeros((self.num_agents, 4, *self.map_size), dtype=bool)
 
         for x in range(self.map_size[0]):
             for y in range(self.map_size[1]):
@@ -445,7 +445,7 @@ class Environment:
 
         # update last actions
         self.last_actions = np.zeros((self.num_agents, 5, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1),
-                                     dtype=np.bool)
+                                     dtype=bool)
         self.last_actions[np.arange(self.num_agents), np.array(actions)] = 1
 
         return self.observe(), rewards, done, info
@@ -475,12 +475,12 @@ class Environment:
         self.map = self.static_obs.static_map + dynamic_ped_map
         self.map[np.where(self.map >= 1)] = 1
 
-        obs = np.zeros((self.num_agents, 6, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1), dtype=np.bool)
+        obs = np.zeros((self.num_agents, 6, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1), dtype=bool)
 
         # 0 represents obstacle to match 0 padding in CNN 地图上下左右都进行填充
         obstacle_map = np.pad(self.map, self.obs_radius, 'constant', constant_values=0)  # 对边缘进行填充
 
-        agent_map = np.zeros((self.map_size), dtype=np.bool)
+        agent_map = np.zeros((self.map_size), dtype=bool)
         agent_map[self.agents_pos[:, 0], self.agents_pos[:, 1]] = 1
         agent_map = np.pad(agent_map, self.obs_radius, 'constant', constant_values=0)
 

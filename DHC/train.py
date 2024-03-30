@@ -17,7 +17,7 @@ torch.manual_seed(2022)
 np.random.seed(2022)
 random.seed(2022)
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 
 def ray_init():

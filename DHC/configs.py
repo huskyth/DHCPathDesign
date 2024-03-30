@@ -25,7 +25,7 @@ action_dim = 5
 ####################         DQN        ####################
 ############################################################
 
-num_actors = 16
+num_actors = 2
 log_interval = 10
 training_times = 60000
 save_interval = 2000

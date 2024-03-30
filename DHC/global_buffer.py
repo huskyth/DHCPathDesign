@@ -32,16 +32,16 @@ class GlobalBuffer:
         self.env_settings_set = ray.put([init_env_settings])
 
         self.obs_buf = np.zeros(
-            ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=np.bool)
+            ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=bool)
         self.act_buf = np.zeros((local_buffer_capacity * episode_capacity), dtype=np.uint8)
         self.rew_buf = np.zeros((local_buffer_capacity * episode_capacity), dtype=np.float16)
         self.hid_buf = np.zeros((local_buffer_capacity * episode_capacity, configs.max_num_agents, configs.hidden_dim),
                                 dtype=np.float16)
-        self.done_buf = np.zeros(episode_capacity, dtype=np.bool)
+        self.done_buf = np.zeros(episode_capacity, dtype=bool)
         self.size_buf = np.zeros(episode_capacity, dtype=np.uint)
         self.comm_mask_buf = np.zeros(
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, configs.max_num_agents),
-            dtype=np.bool)
+            dtype=bool)
 
         self.background_thread = None
 

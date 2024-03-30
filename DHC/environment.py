@@ -132,7 +132,7 @@ class Environment:
         self.get_heuri_map()
         self.steps = 0
 
-        self.last_actions = np.zeros((self.num_agents, 5, 2 * obs_radius + 1, 2 * obs_radius + 1), dtype=np.bool)
+        self.last_actions = np.zeros((self.num_agents, 5, 2 * obs_radius + 1, 2 * obs_radius + 1), dtype=bool)
         self.imgs = None
         self.heuri_map = None
 
@@ -190,7 +190,7 @@ class Environment:
         self.get_heuri_map()
 
         self.last_actions = np.zeros((self.num_agents, 5, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1),
-                                     dtype=np.bool)
+                                     dtype=bool)
 
         return self.observe()
 
@@ -210,7 +210,7 @@ class Environment:
         self.get_heuri_map()
 
         self.last_actions = np.zeros((self.num_agents, 5, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1),
-                                     dtype=np.bool)
+                                     dtype=bool)
 
     def get_heuri_map(self):
         dist_map = np.ones((self.num_agents, *self.map_size), dtype=np.int32) * 2147483647
@@ -248,7 +248,7 @@ class Environment:
                     if right not in open_list:
                         open_list.append(right)
 
-        self.heuri_map = np.zeros((self.num_agents, 4, *self.map_size), dtype=np.bool)
+        self.heuri_map = np.zeros((self.num_agents, 4, *self.map_size), dtype=bool)
 
         for x in range(self.map_size[0]):
             for y in range(self.map_size[1]):
@@ -407,7 +407,7 @@ class Environment:
 
         # update last actions
         self.last_actions = np.zeros((self.num_agents, 5, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1),
-                                     dtype=np.bool)
+                                     dtype=bool)
         self.last_actions[np.arange(self.num_agents), np.array(actions)] = 1
 
         return self.observe(), rewards, done, info
@@ -425,12 +425,12 @@ class Environment:
         pos: used for caculating communication mask
 
         '''
-        obs = np.zeros((self.num_agents, 6, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1), dtype=np.bool)
+        obs = np.zeros((self.num_agents, 6, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1), dtype=bool)
 
         # 0 represents obstacle to match 0 padding in CNN
         obstacle_map = np.pad(self.map, self.obs_radius, 'constant', constant_values=0)
 
-        agent_map = np.zeros(self.map_size, dtype=np.bool)
+        agent_map = np.zeros(self.map_size, dtype=bool)
         agent_map[self.agents_pos[:, 0], self.agents_pos[:, 1]] = 1
         agent_map = np.pad(agent_map, self.obs_radius, 'constant', constant_values=0)
 
