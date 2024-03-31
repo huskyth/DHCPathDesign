@@ -17,7 +17,7 @@ torch.manual_seed(2022)
 np.random.seed(2022)
 random.seed(2022)
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 
 def ray_init():
@@ -57,6 +57,6 @@ def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
         done = ray.get(learner.stats.remote(log_interval))
         ray.get(buffer.stats.remote(log_interval))
 
-
+# https://docs.ray.io/en/latest/ray-core/scheduling/ray-oom-prevention.html OOM
 if __name__ == '__main__':
     main()
