@@ -32,7 +32,9 @@ class Actor:
 
     def run(self):
         obs, pos, local_buffer = self.reset()
+        episode_length = 0
         while True:
+            episode_length += 1
             actions, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(obs.astype(np.float32)),
                                                                 torch.from_numpy(pos.astype(np.float32)))
             if random.random() < self.epsilon:
@@ -58,6 +60,8 @@ class Actor:
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()
                 self.epoch += 1
+                print(f"id: {self.id}, episode_length = {episode_length}")
+                episode_length = 0
 
             self.update_counter += 1
 
