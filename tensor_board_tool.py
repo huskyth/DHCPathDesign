@@ -11,7 +11,7 @@ def create_directory(path):
         os.mkdir(str(path))
 
 
-ROOT_PATH = Path(__file__).parent.parent.parent
+ROOT_PATH = Path(__file__).parent
 
 WANDB_PATH = ROOT_PATH / "wandb_log"
 SUMMARY_PATH = ROOT_PATH / "summary_log"
@@ -24,7 +24,7 @@ log_dir = SUMMARY_PATH
 @ray.remote(num_cpus=1)
 class MySummary:
 
-    def __init__(self, log_dir_name="default", use_wandb=True):
+    def __init__(self, log_dir_name="default", use_wandb=False):
         log_path = str(log_dir / log_dir_name)
         if not os.path.exists(log_path):
             os.mkdir(log_path)
