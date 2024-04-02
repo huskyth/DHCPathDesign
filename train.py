@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import ray
 
+from tensor_board_tool import MySummary
 from worker import GlobalBuffer, Learner, Actor
 import configs
 
@@ -18,10 +19,11 @@ random.seed(0)
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray.init()
 
+    my_summary = MySummary.remote()
     buffer = GlobalBuffer.remote()
-    learner = Learner.remote(buffer)
+    learner = Learner.remote(buffer, my_summary)
     time.sleep(1)
-    actors = [Actor.remote(i, 0.4**(1+(i/(num_actors-1))*7), learner, buffer) for i in range(num_actors)]
+    actors = [Actor.remote(i, 0.4**(1+(i/(num_actors-1))*7), learner, buffer, my_summary) for i in range(num_actors)]
 
     for actor in actors:
         actor.run.remote()
