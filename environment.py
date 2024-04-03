@@ -214,7 +214,7 @@ class Environment:
         self.last_actions = np.zeros((self.num_agents, 5, 2*self.obs_radius+1, 2*self.obs_radius+1), dtype=bool)
 
     def get_heuri_map(self):
-        dist_map = np.ones((self.num_agents, *self.map_size), dtype=int32) * 2147483647
+        dist_map = np.ones((self.num_agents, *self.map_size), dtype=np.int32) * 2147483647
         for i in range(self.num_agents):
             open_list = list()
             x, y = tuple(self.goals_pos[i])
