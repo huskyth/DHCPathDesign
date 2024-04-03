@@ -24,7 +24,7 @@ log_dir = SUMMARY_PATH
 @ray.remote(num_cpus=1)
 class MySummary:
 
-    def __init__(self, log_dir_name="default", use_wandb=False):
+    def __init__(self, log_dir_name="default", use_wandb=True):
         log_path = str(log_dir / log_dir_name)
         if not os.path.exists(log_path):
             os.mkdir(log_path)
