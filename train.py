@@ -17,7 +17,7 @@ random.seed(0)
 
 
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
-    ray.init(num_cpus=1)
+    ray.init(ignore_reinit_error=True, num_cpus=4)
 
     my_summary = MySummary.remote()
     buffer = GlobalBuffer.remote()
