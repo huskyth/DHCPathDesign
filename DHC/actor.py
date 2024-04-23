@@ -62,7 +62,7 @@ class Actor:
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()
                 self.epoch += 1
-                print(f"id: {self.id}, episode_length = {episode_length}")
+                print(f"id: {self.id}, episode_length = {episode_length}, is Done {done}")
                 episode_length = 0
 
             self.update_counter += 1

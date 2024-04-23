@@ -3,9 +3,11 @@ import pandas as pd
 import re
 import math
 
+from DHC.configs import PROJECT_ROOT
+
 
 class DynamicPedestrian:
-    def __init__(self, rows, columns, filepath='construct_map/pedestrian.txt'):
+    def __init__(self, rows, columns, filepath=str(PROJECT_ROOT / "construct_map/pedestrian.txt")):
         self.dynamic_map = None
         self.plane_right_top = None
         self.plane_left_bottom = None
@@ -28,7 +30,7 @@ class DynamicPedestrian:
                 time2pos.append(pos)
         self.pde_df = pd.DataFrame(time2pos, columns=ped_index)
 
-    def get_planecoor(self, planepath='construct_map/coordinate.txt'):
+    def get_planecoor(self, planepath=str(PROJECT_ROOT / "construct_map/coordinate.txt")):
         with open(planepath, "r") as file:
             lines = file.readlines()
             plane_coor = (lines[1: 5])

@@ -1,9 +1,11 @@
 import numpy as np
 import math
 
+from DHC.configs import PROJECT_ROOT
+
 
 class StaticObstacle():
-    def __init__(self, filepath='construct_map/coordinate.txt', agent_size=0.5):
+    def __init__(self, filepath=str(PROJECT_ROOT / "construct_map/coordinate.txt"), agent_size=0.5):
         self.columns = None
         self.rows = None
         self.map_data = None

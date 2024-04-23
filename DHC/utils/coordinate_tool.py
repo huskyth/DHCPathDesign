@@ -1,4 +1,7 @@
-def get_plane_coordinate(plane_path='./construct_map/coordinate.txt'):
+from DHC.configs import PROJECT_ROOT
+
+
+def get_plane_coordinate(plane_path=str(PROJECT_ROOT / "construct_map/coordinate.txt")):
     with open(plane_path, "r") as file:
         lines = file.readlines()
         plane_coordinate = (lines[1: 5])

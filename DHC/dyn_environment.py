@@ -88,8 +88,6 @@ class Environment:
                  curriculum=False, init_env_settings_set=configs.init_env_settings):
         self.heuri_map = None
         self.fig = None
-        self.texts = None
-        self.imgs = None
         self.dyn_map = 0
         self.curriculum = curriculum
         if curriculum:
@@ -144,6 +142,7 @@ class Environment:
         self.get_heuri_map()
         self.steps = 0
         self.last_actions = np.zeros((self.num_agents, 5, 2 * obs_radius + 1, 2 * obs_radius + 1), dtype=bool)
+        self.imgs = []
 
     def update_env_settings_set(self, new_env_settings_set):
         self.env_set = new_env_settings_set
