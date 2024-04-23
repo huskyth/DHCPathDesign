@@ -33,7 +33,7 @@ class MySummary:
         if use_wandb:
             ticks = str(time.time())
             wandb.login(key="613f55cae781fb261b18bad5ec25aa65766e6bc8")
-            self.wandb_logger = wandb.init(project="WatermelonChess" + ticks, dir=WANDB_PATH)
+            self.wandb_logger = wandb.init(project="PathDesign", dir=WANDB_PATH)
 
     def add_float(self, x, y, title, x_name):
         self.writer.add_scalar(title, y, x)
