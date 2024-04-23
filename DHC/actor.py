@@ -9,7 +9,7 @@ from DHC.buffer import LocalBuffer
 from DHC.global_buffer import GlobalBuffer
 from DHC.learner import Learner
 from DHC.model import Network
-from environment import Environment
+from dyn_environment import Environment
 
 
 @ray.remote(num_cpus=1)
@@ -41,6 +41,8 @@ class Actor:
                 # Note: only one agent do random action in order to keep the environment stable
                 actions[0] = np.random.randint(0, 5)
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
+            if self.id == 0:
+                self.env.render()
             local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, comm_mask)
             if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos

@@ -6,7 +6,6 @@ plt.ion()
 import configs
 from construct_map.static_map import StaticObstacle
 from construct_map.dynamic_map import DynamicPedestrian
-from utils.logger_write_file import *
 import pandas as pd
 
 '''
@@ -19,7 +18,7 @@ actions:
         3 left
         4 right
 '''
-action_list = np.array([[0, 0], [0, 1], [0, -1], [-1, 0], [1, 0]], dtype=int)
+action_list = np.array([[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], dtype=int)
 
 color_map = np.array([[255, 255, 255],  # white
                       [190, 190, 190],  # gray
@@ -314,21 +313,12 @@ class Environment:
                 if np.array_equal(self.agents_pos[agent_id], self.goals_pos[agent_id]):
                     rewards.append(self.reward_fn['stay_on_goal'])
                 else:
-                    rewards.append(self.reward_fn['collision'] * rank_of_agents[agent_id] / len(self.goals_pos))
-                    content = 'agent {} reward = {}, rank = {}'.format(agent_id, rewards[-1], rank_of_agents[agent_id])
-                    write_file(content, 'rank_reward.txt')
+                    rewards.append(self.reward_fn['stay_off_goal'])
 
                 checking_list.remove(agent_id)
             else:
-                origin_pos = [x for x in next_pos[agent_id]]
                 next_pos[agent_id] += action_list[actions[agent_id]]
-                move_reward_sign = 1 if is_next_position_toward_goal_by_distance(*origin_pos, *next_pos[agent_id],
-                                                                                 *list(
-                                                                                     self.goals_pos[agent_id])) else -1
-                rewards.append(abs(self.reward_fn['collision']) * move_reward_sign * rank_of_agents[agent_id] / len(
-                    self.agents_pos))
-                content = 'agent {} reward = {}, rank = {}'.format(agent_id, rewards[-1], rank_of_agents[agent_id])
-                write_file(content, 'rank_reward.txt')
+                rewards.append(self.reward_fn['move'])
 
         # first round check, these two conflicts have the heightest priority
         for agent_id in checking_list.copy():
@@ -417,20 +407,10 @@ class Environment:
 
         self.steps += 1
 
-        for i, (x, y) in enumerate(zip(self.agents_pos, self.goals_pos)):
-            if np.array_equal(x, y):
-                assert i <= len(rewards) - 1, write_file('rewards length too short')
-                before_reward = rewards[i]
-                rewards[i] = self.reward_fn['finish'] / len(self.agents_pos)
-                content = 'agent {} has {} reward, before reward = {}'.format(i, rewards[i], before_reward)
-                write_file(content)
-
         # check done
         if np.array_equal(self.agents_pos, self.goals_pos):
             done = True
             rewards = [self.reward_fn['finish'] for _ in range(self.num_agents)]
-            content = 'done is True, four agents is at goal'
-            write_file(content, name='agent_finish.txt')
         else:
             done = False
 
