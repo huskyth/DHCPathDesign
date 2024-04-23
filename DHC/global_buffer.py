@@ -230,7 +230,7 @@ class GlobalBuffer:
             print()
 
     def stats(self, interval: int):
-        self.log(interval)
+        self.log(interval, use=True)
         for key, val in self.stat_dict.copy().items():
             if len(val) == 200 and sum(val) >= 200 * configs.pass_rate:
                 # add number of agents

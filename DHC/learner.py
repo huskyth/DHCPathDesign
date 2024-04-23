@@ -45,6 +45,10 @@ class Learner:
 
         self.my_summary = summary
 
+        self.counter = 0
+        self.last_counter = 0
+        self.loss = 0
+
     def get_weights(self):
         return self.weights_id
 
@@ -95,6 +99,7 @@ class Learner:
                 priorities = td_error.detach().squeeze().abs().clamp(1e-4).cpu().numpy()
 
                 loss = (weights * self.huber_loss(td_error)).mean()
+                self.loss += loss.item()
 
                 self.optimizer.zero_grad()
                 scaler.scale(loss).backward()
@@ -115,6 +120,7 @@ class Learner:
                 self.buffer.update_priorities.remote(idxes, priorities, old_ptr)
 
                 self.model_save_counter += 1
+                self.counter += 1
 
                 # update target net, save model
                 if i % configs.target_network_update_freq == 0:
@@ -137,4 +143,13 @@ class Learner:
         return flag * abs_td_error.pow(2) * 0.5 + (1 - flag) * (abs_td_error - 0.5)
 
     def stats(self, interval: int):
+        print('number of updates: {}'.format(self.counter))
+        print('update speed: {}/s'.format((self.counter - self.last_counter) / interval))
+        if self.counter != self.last_counter:
+            average_loss = self.loss / (self.counter - self.last_counter)
+            print('loss: {:.4f}'.format(average_loss))
+            self.my_summary.add_float.remote(x=self.counter, y=average_loss, title="Average Loss",
+                                             x_name=f"self.counter")
+        self.last_counter = self.counter
+        self.loss = 0
         return self.done
