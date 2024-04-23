@@ -44,6 +44,7 @@ def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
         actor.run.remote()
 
     while not ray.get(buffer.ready.remote()):
+        time.sleep(5)
         ray.get(learner.stats.remote(5))
         ray.get(buffer.stats.remote(5))
 
