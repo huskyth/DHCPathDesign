@@ -1,4 +1,11 @@
+import sys
+
 import gym, random, pickle, os.path, math, glob
+from pathlib import Path
+
+path = str(Path(__file__).parent.parent)
+if path not in sys.path:
+    sys.path.append(path)
 
 import numpy as np
 import pandas as pd
@@ -11,6 +18,7 @@ import torch.nn.functional as F
 import torch.autograd as autograd
 import pdb
 
+from DHC.icm.icm_model import ICM
 from atari_wrappers import make_atari, wrap_deepmind, LazyFrames
 from IPython.display import clear_output
 from tensorboardX import SummaryWriter
@@ -32,9 +40,9 @@ for i in range(100):
 
 plt.imshow(test._force()[..., 0])
 
-
 # plt.imshow(env.render("rgb_array"))
 # env.close()
+
 
 class DQN(nn.Module):
     def __init__(self, in_channels=4, num_actions=5):
@@ -57,7 +65,7 @@ class DQN(nn.Module):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
-        x = F.relu(self.fc4(x.view(x.size(0), -1)))
+        x = F.relu(self.fc4(x.contiguous().view(x.size(0), -1)))
         return self.fc5(x)
 
 
