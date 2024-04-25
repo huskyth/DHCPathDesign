@@ -17,6 +17,8 @@ from DHC.utils.model_save_load_tool import model_save
 from torch.cuda.amp import GradScaler
 import torch.nn as nn
 
+import torch.nn.functional as F
+
 
 @ray.remote(num_cpus=1, num_gpus=1)
 class Learner:
@@ -51,29 +53,50 @@ class Learner:
         self.last_counter = 0
         self.loss = 0
 
+        self.use_extrinsic = True
+        self.td_loss_scale = 1
+        self.forward_loss_scale = 1
+        self.inverse_loss_scale = 1
+
     def get_weights(self):
         return self.weights_id
 
-    def compute_icm_loss(self):
+    def compute_icm_loss(self, b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask,
+                         idxes, weights):
+
+        b_next_seq_len = [(seq_len + forward_steps).item() for seq_len, forward_steps in
+                          zip(b_seq_len, b_steps)]
+        b_next_seq_len = torch.LongTensor(b_next_seq_len)
+
         # TODO://
-        # compute q-values for all actions in next states
-        predicted_next_qvalues = self.DQN_target(next_states)  # YOUR CODE
+        b_q = self.model(b_obs[:, :-configs.forward_steps], b_seq_len, b_hidden,
+                         b_comm_mask[:, :-configs.forward_steps]).gather(1, b_action)
 
-        # compute V*(next_states) using predicted next q-values
-        next_state_values = predicted_next_qvalues.max(-1)[0]  # YOUR CODE
+        # get ICM results
+        a_vec = F.one_hot(b_action, num_classes=self.action_space.n)  # convert action from int to one-hot format
+        prediction_s_next, prediction_a_vec, feature_x_next = self.ICM.get_full(b_obs, next_states, a_vec)
 
-        # compute "target q-values" for loss - it's what's inside square parentheses in the above formula.
-        target_qvalues_for_actions = total_rewards + gamma * next_state_values  # YOUR CODE
+        # calculate forward prediction and inverse prediction loss
+        forward_loss = F.mse_loss(prediction_s_next, feature_x_next.detach(), reduction='none')
+        inverse_prediction_loss = F.cross_entropy(prediction_a_vec, b_action.detach(), reduction='none')
 
-        # at the last state we shall use simplified formula: Q(s,a) = r(s,a) since s' doesn't exist
-        target_qvalues_for_actions = torch.where(
-            is_done, total_rewards, target_qvalues_for_actions)
+        # calculate rewards
+        intrinsic_rewards = self.intrinsic_scale * forward_loss.mean(-1)
+        total_rewards = intrinsic_rewards.clone()
+        if self.use_extrinsic:
+            total_rewards += b_reward
 
-        # mean squared error loss to minimize
-        # loss = torch.mean((predicted_qvalues_for_actions -
-        #                   target_qvalues_for_actions.detach()) ** 2)
-        Q_loss = F.smooth_l1_loss(predicted_qvalues_for_actions, target_qvalues_for_actions.detach())
-        loss = self.Qloss_scale * Q_loss + self.forward_scale * forward_loss.mean() + self.inverse_scale * inverse_pred_loss.mean()
+        with torch.no_grad():
+            b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
+                                                 b_comm_mask).max(1, keepdim=True)[0]
+
+        td_error = (b_q - (b_reward + total_rewards + (0.99 ** b_steps) * b_q_))
+        loss = (weights * self.huber_loss(td_error)).mean()
+
+        loss_all = self.td_loss_scale * loss + self.forward_loss_scale * \
+                   forward_loss.mean() + self.inverse_loss_scale * inverse_prediction_loss.mean()
+
+        return td_error, loss_all
 
     def store_weights(self):
         state_dict = self.model.state_dict()
