@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import configs
 
@@ -62,7 +64,7 @@ class SumTree:
 
 
 class LocalBuffer:
-    __slots__ = ('actor_id', 'map_len', 'num_agents', 'obs_buf', 'act_buf', 'rew_buf', 'hid_buf',
+    __slots__ = ('actor_id', 'map_len', 'num_agents', 'obs_buf', 'act_buf', 'pre_obs_buf', 'rew_buf', 'hid_buf',
                  'comm_mask_buf', 'q_buf', 'capacity', 'size', 'done')
 
     def __init__(self, actor_id: int, num_agents: int, map_len: int, init_obs: np.ndarray,
@@ -76,6 +78,7 @@ class LocalBuffer:
         self.map_len = map_len
 
         self.obs_buf = np.zeros((capacity + 1, num_agents, *obs_shape), dtype=bool)
+        self.pre_obs_buf = np.zeros((capacity + 1, num_agents, *obs_shape), dtype=bool)
         self.act_buf = np.zeros(capacity, dtype=np.uint8)
         self.rew_buf = np.zeros(capacity, dtype=np.float16)
         self.hid_buf = np.zeros((capacity, num_agents, hidden_dim), dtype=np.float16)
@@ -114,6 +117,7 @@ class LocalBuffer:
             self.comm_mask_buf[self.size] = last_comm_mask
 
         self.obs_buf = self.obs_buf[:self.size + 1]
+        self.pre_obs_buf[1:] = copy.deepcopy(self.obs_buf[:self.size])
         self.act_buf = self.act_buf[:self.size]
         self.rew_buf = self.rew_buf[:self.size]
         self.hid_buf = self.hid_buf[:self.size]
@@ -135,4 +139,5 @@ class LocalBuffer:
         return_value = (self.rew_buf * 0.99 ** np.arange(0, self.size)).sum()
 
         return self.actor_id, self.num_agents, self.map_len, self.obs_buf, self.act_buf, \
-            self.rew_buf, self.hid_buf, td_errors, done, self.size, self.comm_mask_buf, return_value
+            self.rew_buf, self.hid_buf, td_errors, done, self.size, self.comm_mask_buf, \
+            return_value, self.pre_obs_buf

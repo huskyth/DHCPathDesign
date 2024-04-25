@@ -25,7 +25,7 @@ class Learner:
     def __init__(self, buffer: GlobalBuffer, summary):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
-        self.icm = ICM(in_channels=-1, num_actions=-1).to(device=self.device)
+        self.icm = ICM(in_channels=32).to(device=self.device)
 
         self.state = None
         self.weight_file = None
@@ -95,7 +95,7 @@ class Learner:
 
         loss_all = self.td_loss_scale * loss + self.forward_loss_scale * \
                    forward_loss.mean() + self.inverse_loss_scale * inverse_prediction_loss.mean()
-
+        assert False
         return td_error, loss_all
 
     def store_weights(self):
@@ -112,7 +112,7 @@ class Learner:
         data_id = ray.get(self.buffer.get_data.remote())
         data = ray.get(data_id)
         b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
-            idxes, weights, old_ptr = data
+            idxes, weights, old_ptr, pre_obs = data
 
         b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
             b_reward.to(self.device)
@@ -120,8 +120,9 @@ class Learner:
             weights.to(self.device)
         b_hidden = b_hidden.to(self.device)
         b_comm_mask = b_comm_mask.to(self.device)
+        pre_obs = pre_obs.to(self.device)
         return b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
-            idxes, weights, old_ptr
+            idxes, weights, old_ptr, pre_obs
 
     def param_update(self, loss, scaler):
         self.optimizer.zero_grad()
@@ -146,11 +147,14 @@ class Learner:
             for i in range(1, step_length):
 
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
-                    idxes, weights, old_ptr = self.get_data()
+                    idxes, weights, old_ptr, pre_obs = self.get_data()
 
                 b_next_seq_len = [(seq_len + forward_steps).item() for seq_len, forward_steps in
                                   zip(b_seq_len, b_steps)]
                 b_next_seq_len = torch.LongTensor(b_next_seq_len)
+
+                # self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
+                #     idxes, weights)
 
                 with torch.no_grad():
                     b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,

@@ -55,7 +55,7 @@ class Actor:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
                     data = local_buffer.finish(q_val[0], comm_mask)
-                return_value = data[-1]
+                return_value = data[-2]
                 if self.id == 0:
                     self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
                                                      x_name=f"{self.id}_epoch")
