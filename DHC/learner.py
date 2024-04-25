@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 
 from DHC import configs
 from DHC.global_buffer import GlobalBuffer
+from DHC.icm.icm_model import ICM
 from DHC.model import Network
 from torch.optim import Adam
 
@@ -22,11 +23,13 @@ class Learner:
     def __init__(self, buffer: GlobalBuffer, summary):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
+        self.icm = ICM(in_channels=-1, num_actions=-1).to(device=self.device)
+
         self.state = None
         self.weight_file = None
 
         self.model_save_counter = 0
-        self.optimizer = Adam(self.model.parameters(), lr=1e-3)
+        self.optimizer = Adam(list(self.model.parameters()) + list(self.icm.parameters()), lr=1e-3)
         self.avg_reward = 0
         self.avg_finish_cases = 0
         self.avg_step = 0
@@ -51,6 +54,27 @@ class Learner:
 
     def get_weights(self):
         return self.weights_id
+
+    def compute_icm_loss(self):
+        # TODO://
+        # compute q-values for all actions in next states
+        predicted_next_qvalues = self.DQN_target(next_states)  # YOUR CODE
+
+        # compute V*(next_states) using predicted next q-values
+        next_state_values = predicted_next_qvalues.max(-1)[0]  # YOUR CODE
+
+        # compute "target q-values" for loss - it's what's inside square parentheses in the above formula.
+        target_qvalues_for_actions = total_rewards + gamma * next_state_values  # YOUR CODE
+
+        # at the last state we shall use simplified formula: Q(s,a) = r(s,a) since s' doesn't exist
+        target_qvalues_for_actions = torch.where(
+            is_done, total_rewards, target_qvalues_for_actions)
+
+        # mean squared error loss to minimize
+        # loss = torch.mean((predicted_qvalues_for_actions -
+        #                   target_qvalues_for_actions.detach()) ** 2)
+        Q_loss = F.smooth_l1_loss(predicted_qvalues_for_actions, target_qvalues_for_actions.detach())
+        loss = self.Qloss_scale * Q_loss + self.forward_scale * forward_loss.mean() + self.inverse_scale * inverse_pred_loss.mean()
 
     def store_weights(self):
         state_dict = self.model.state_dict()
