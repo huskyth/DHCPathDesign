@@ -28,7 +28,6 @@ class Learner:
         self.state = None
         self.weight_file = None
 
-        self.model_save_counter = 0
         self.optimizer = Adam(list(self.model.parameters()) + list(self.icm.parameters()), lr=1e-3)
         self.avg_reward = 0
         self.avg_finish_cases = 0
@@ -86,6 +85,35 @@ class Learner:
         self.learning_thread = threading.Thread(target=self.train, daemon=True)
         self.learning_thread.start()
 
+    def get_data(self):
+        data_id = ray.get(self.buffer.get_data.remote())
+        data = ray.get(data_id)
+        b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
+            idxes, weights, old_ptr = data
+
+        b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
+            b_reward.to(self.device)
+        b_done, b_steps, weights = b_done.to(self.device), b_steps.to(self.device), \
+            weights.to(self.device)
+        b_hidden = b_hidden.to(self.device)
+        b_comm_mask = b_comm_mask.to(self.device)
+        return b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
+            idxes, weights, old_ptr
+
+    def param_update(self, loss, scaler):
+        self.optimizer.zero_grad()
+        scaler.scale(loss).backward()
+
+        self.my_summary.add_float.remote(x=self.counter, y=loss.item(), title="Loss", x_name="Step")
+
+        scaler.unscale_(self.optimizer)
+        nn.utils.clip_grad_norm_(self.model.parameters(), 40)
+
+        scaler.step(self.optimizer)
+        scaler.update()
+
+        self.scheduler.step()
+
     def train(self):
         scaler = GradScaler()
         epoch = 0
@@ -93,19 +121,9 @@ class Learner:
             epoch += 1
             step_length = 10000
             for i in range(1, step_length):
-                current_x = i + step_length * (epoch - 1)
-                self.my_summary.add_float.remote(x=current_x, y=i, title="Step", x_name="Step")
-                data_id = ray.get(self.buffer.get_data.remote())
-                data = ray.get(data_id)
-                b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
-                    idxes, weights, old_ptr = data
 
-                b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
-                    b_reward.to(self.device)
-                b_done, b_steps, weights = b_done.to(self.device), b_steps.to(self.device), \
-                    weights.to(self.device)
-                b_hidden = b_hidden.to(self.device)
-                b_comm_mask = b_comm_mask.to(self.device)
+                b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
+                    idxes, weights, old_ptr = self.get_data()
 
                 b_next_seq_len = [(seq_len + forward_steps).item() for seq_len, forward_steps in
                                   zip(b_seq_len, b_steps)]
@@ -125,39 +143,26 @@ class Learner:
                 loss = (weights * self.huber_loss(td_error)).mean()
                 self.loss += loss.item()
 
-                self.optimizer.zero_grad()
-                scaler.scale(loss).backward()
-
-                self.my_summary.add_float.remote(x=current_x, y=loss.item(), title="Loss", x_name="Step")
-
-                scaler.unscale_(self.optimizer)
-                nn.utils.clip_grad_norm_(self.model.parameters(), 40)
-
-                scaler.step(self.optimizer)
-                scaler.update()
-
-                self.scheduler.step()
+                self.param_update(loss, scaler)
 
                 if i % 5 == 0:
                     self.store_weights()
 
                 self.buffer.update_priorities.remote(idxes, priorities, old_ptr)
 
-                self.model_save_counter += 1
-                self.counter += 1
-
                 # update target net, save model
                 if i % configs.target_network_update_freq == 0:
                     self.tar_model.load_state_dict(self.model.state_dict())
 
+                self.counter += 1
                 if i % configs.save_interval == 0:
                     now_time = time.strftime("%Y-%m-%d-%H", time.localtime())
                     path = os.path.join(configs.save_path, '{}-{}.pth'.format(now_time,
-                                                                              self.model_save_counter))
+                                                                              self.counter))
                     model_save(self.model, path)
                     print(
                         "save model path:" + os.path.join(configs.save_path, '{}-{}.pth'.
-                                                          format(now_time, self.model_save_counter)))
+                                                          format(now_time, self.counter)))
 
         self.done = True
 
