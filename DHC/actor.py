@@ -56,7 +56,7 @@ class Actor:
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
                     data = local_buffer.finish(q_val[0], comm_mask)
                 return_value = data[-2]
-                if self.id == 0:
+                if self.id == 1:
                     self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
                                                      x_name=f"{self.id}_epoch")
                 self.global_buffer.add.remote(data)

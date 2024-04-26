@@ -25,7 +25,7 @@ class Learner:
     def __init__(self, buffer: GlobalBuffer, summary):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
-        self.icm = ICM(in_channels=32).to(device=self.device)
+        self.icm = ICM().to(device=self.device)
 
         self.state = None
         self.weight_file = None
@@ -54,10 +54,10 @@ class Learner:
         self.loss = 0
 
         self.use_extrinsic = True
-        self.td_loss_scale = 1
-        self.forward_loss_scale = 1
-        self.inverse_loss_scale = 1
-        self.intrinsic_reward_scale = 1
+        self.td_loss_scale = 5
+        self.forward_loss_scale = -3
+        self.inverse_loss_scale = 0.2
+        self.intrinsic_reward_scale = 5
 
     def get_weights(self):
         return self.weights_id
@@ -83,17 +83,11 @@ class Learner:
         forward_loss = F.mse_loss(prediction_s_next, feature_x_next.detach(), reduction='none')
         inverse_prediction_loss = F.cross_entropy(prediction_a_vec, b_action.squeeze(1).detach(), reduction='none')
 
-        # calculate rewards
-        intrinsic_rewards = self.intrinsic_reward_scale * forward_loss.mean(-1)
-        total_rewards = intrinsic_rewards.clone().unsqueeze(1)
-        if self.use_extrinsic:
-            total_rewards += b_reward
-
         with torch.no_grad():
             b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
                                                  b_comm_mask).max(1, keepdim=True)[0]
 
-        td_error = (b_q - (b_reward + total_rewards + (0.99 ** b_steps) * b_q_))
+        td_error = (b_q - (b_reward + (0.99 ** b_steps) * b_q_))
         loss = (weights * self.huber_loss(td_error)).mean()
 
         loss_all = (self.td_loss_scale * loss + self.forward_loss_scale * forward_loss.mean() + self.inverse_loss_scale

@@ -451,7 +451,7 @@ class Environment:
             # todo 只是测试，之后删掉
             if self.t >= len(self.dynamic_ped.pde_df):
                 self.t = 0
-        self.map = self.static_obs.static_map + dynamic_ped_map
+        self.map = self.static_obs.static_map
         self.map[np.where(self.map >= 1)] = 1
 
         obs = np.zeros((self.num_agents, 6, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1), dtype=bool)
@@ -491,14 +491,17 @@ class Environment:
         self.imgs.append([])
         if hasattr(self, 'texts'):
             for i, ((agent_x, agent_y), (goal_x, goal_y)) in enumerate(zip(self.agents_pos, self.goals_pos)):
-                self.texts[i].set_position((agent_y, agent_x))
-                self.texts[i].set_text(i)
+                self.texts[i][0].set_position((agent_y, agent_x))
+                self.texts[i][0].set_text(i)
+
+                self.texts[i][1].set_position((goal_y, goal_x))
+                self.texts[i][1].set_text(i)
         else:
             self.texts = []
             for i, ((agent_x, agent_y), (goal_x, goal_y)) in enumerate(zip(self.agents_pos, self.goals_pos)):
-                text = plt.text(agent_y, agent_x, i, color='black', ha='center', va='center')
-                plt.text(goal_y, goal_x, i, color='black', ha='center', va='center')
-                self.texts.append(text)
+                agent_text = plt.text(agent_y, agent_x, i, color='black', ha='center', va='center')
+                goal_text = plt.text(goal_y, goal_x, i, color='black', ha='center', va='center')
+                self.texts.append((agent_text, goal_text))
 
         plt.imshow(color_map[map], animated=True)
 
