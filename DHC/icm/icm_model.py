@@ -9,7 +9,7 @@ from torch.cuda.amp import autocast
 
 
 class ICM(nn.Module):
-    def __init__(self, in_channels=(seq_len + forward_steps) * num_agents * obs_shape[0], num_actions=5):
+    def __init__(self, in_channels=num_agents * obs_shape[0], num_actions=5):
         """
         Initialize a deep Q-learning network as described in
         https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
@@ -61,7 +61,7 @@ class ICM(nn.Module):
         return self.get_feature(x)
 
     @autocast()
-    def get_full(self, x, x_next, a_vec, comm_mask, steps, hidden):
+    def get_full(self, x, x_next, a_vec):
         feature_x = self.encode(x)
 
         feature_x_next = self.encode(x_next)

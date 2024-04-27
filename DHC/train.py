@@ -34,7 +34,7 @@ def epsilon():
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray_init()
     buffer = GlobalBuffer.remote()
-    my_summary = MySummary.remote(use_wandb=True)
+    my_summary = MySummary.remote(use_wandb=False)
     learner = Learner.remote(buffer=buffer, summary=my_summary)
     time.sleep(1)
     actors = [Actor.remote(i, 0.4 ** (1 + (i / (num_actors + epsilon())) * 7),

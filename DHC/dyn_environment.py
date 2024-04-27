@@ -18,6 +18,17 @@ actions:
         3 left
         4 right
 '''
+int_action = {0:
+                  "stay",
+              1:
+                  "up",
+              2:
+                  "down",
+              3:
+                  "left",
+              4:
+                  "right"
+              }
 action_list = np.array([[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], dtype=int)
 
 color_map = np.array([[255, 255, 255],  # white
@@ -473,7 +484,7 @@ class Environment:
 
         return obs, np.copy(self.agents_pos)
 
-    def render(self):
+    def render(self, action):
         if not hasattr(self, 'fig'):
             self.fig = plt.figure()
 
@@ -491,17 +502,26 @@ class Environment:
         self.imgs.append([])
         if hasattr(self, 'texts'):
             for i, ((agent_x, agent_y), (goal_x, goal_y)) in enumerate(zip(self.agents_pos, self.goals_pos)):
+                info = int_action[action[i]]
                 self.texts[i][0].set_position((agent_y, agent_x))
                 self.texts[i][0].set_text(i)
 
                 self.texts[i][1].set_position((goal_y, goal_x))
                 self.texts[i][1].set_text(i)
+
+                self.texts[i][2].set_position((agent_y + 1, agent_x + 1))
+                self.texts[i][2].set_text(info)
+
+
         else:
             self.texts = []
             for i, ((agent_x, agent_y), (goal_x, goal_y)) in enumerate(zip(self.agents_pos, self.goals_pos)):
+                info = int_action[action[i]]
                 agent_text = plt.text(agent_y, agent_x, i, color='black', ha='center', va='center')
                 goal_text = plt.text(goal_y, goal_x, i, color='black', ha='center', va='center')
-                self.texts.append((agent_text, goal_text))
+                action_text = plt.text(agent_y + 1, agent_x + 1, info, color='black', ha='center', va='center')
+                self.texts.append((agent_text, goal_text, action_text))
+
 
         plt.imshow(color_map[map], animated=True)
 

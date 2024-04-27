@@ -14,6 +14,18 @@ color_map = np.array([[255, 255, 255],  # white
                       [255, 165, 0],  # orange
                       [0, 250, 154]])  # green
 
+int_action = {0:
+                  "stay",
+              1:
+                  "up",
+              2:
+                  "down",
+              3:
+                  "left",
+              4:
+                  "right"
+              }
+
 
 def map_partition(map):
     '''
@@ -71,7 +83,6 @@ class Environment:
                  obs_radius: int = configs.obs_radius, reward_fn: dict = configs.reward_fn, fix_density=None,
                  curriculum=False, init_env_settings_set=configs.init_env_settings):
 
-        self.texts = None
         self.fig = None
         self.curriculum = curriculum
         if curriculum:
@@ -133,7 +144,6 @@ class Environment:
         self.steps = 0
 
         self.last_actions = np.zeros((self.num_agents, 5, 2 * obs_radius + 1, 2 * obs_radius + 1), dtype=bool)
-        self.imgs = None
         self.heuri_map = None
 
     def update_env_settings_set(self, new_env_settings_set):
@@ -204,8 +214,6 @@ class Environment:
         self.map_size = (self.map.shape[0], self.map.shape[1])
 
         self.steps = 0
-
-        self.imgs = []
 
         self.get_heuri_map()
 
@@ -444,7 +452,7 @@ class Environment:
 
         return obs, np.copy(self.agents_pos)
 
-    def render(self):
+    def render(self, action):
         if not hasattr(self, 'fig'):
             self.fig = plt.figure()
 
@@ -457,19 +465,28 @@ class Environment:
                 map[tuple(self.goals_pos[agent_id])] = 3
 
         map = map.astype(np.uint8)
+        info = int_action[action]
 
         # add text in plot
-        self.imgs.append([])
         if hasattr(self, 'texts'):
             for i, ((agent_x, agent_y), (goal_x, goal_y)) in enumerate(zip(self.agents_pos, self.goals_pos)):
-                self.texts[i].set_position((agent_y, agent_x))
-                self.texts[i].set_text(i)
+                self.texts[i][0].set_position((agent_y, agent_x))
+                self.texts[i][0].set_text(i)
+
+                self.texts[i][1].set_position((goal_y, goal_x))
+                self.texts[i][1].set_text(i)
+
+                self.texts[i][2].set_position((agent_y + 1, agent_x + 1))
+                self.texts[i][2].set_text(info)
+
+
         else:
             self.texts = []
             for i, ((agent_x, agent_y), (goal_x, goal_y)) in enumerate(zip(self.agents_pos, self.goals_pos)):
-                text = plt.text(agent_y, agent_x, i, color='black', ha='center', va='center')
-                plt.text(goal_y, goal_x, i, color='black', ha='center', va='center')
-                self.texts.append(text)
+                agent_text = plt.text(agent_y, agent_x, i, color='black', ha='center', va='center')
+                goal_text = plt.text(goal_y, goal_x, i, color='black', ha='center', va='center')
+                action_text = plt.text(agent_y + 1, agent_x + 1, info, color='black', ha='center', va='center')
+                self.texts.append((agent_text, goal_text, action_text))
 
         plt.imshow(color_map[map], animated=True)
 

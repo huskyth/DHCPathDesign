@@ -30,7 +30,7 @@ log_interval = 10
 training_times = 60000
 save_interval = 2000
 gamma = 0.99
-batch_size = 8
+batch_size = 16
 learning_starts = 50000
 target_network_update_freq = 1000
 save_path = str(MODEL_FILE)
@@ -54,9 +54,9 @@ prioritized_replay_alpha = 0.6
 prioritized_replay_beta = 0.4
 
 # curriculum learning
-init_env_settings = (4, 10)
+init_env_settings = (num_agents, 10)
 map_size = (56, 22)
-max_num_agents = 4
+max_num_agents = num_agents
 max_map_lenght = 40
 pass_rate = 0.9
 

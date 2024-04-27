@@ -117,7 +117,8 @@ class LocalBuffer:
             self.comm_mask_buf[self.size] = last_comm_mask
 
         self.obs_buf = self.obs_buf[:self.size + 1]
-        self.pre_obs_buf[1:] = copy.deepcopy(self.obs_buf[:self.size])
+        self.pre_obs_buf[1:self.size + 1] = copy.deepcopy(self.obs_buf[:self.size])
+        self.pre_obs_buf = self.pre_obs_buf[:self.size + 1]
         self.act_buf = self.act_buf[:self.size]
         self.rew_buf = self.rew_buf[:self.size]
         self.hid_buf = self.hid_buf[:self.size]

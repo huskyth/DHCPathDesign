@@ -14,7 +14,7 @@ from DHC.model import Network
 from torch.optim import Adam
 
 from DHC.utils.model_save_load_tool import model_save
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler
 import torch.nn as nn
 
 import torch.nn.functional as F
@@ -55,7 +55,7 @@ class Learner:
 
         self.use_extrinsic = True
         self.td_loss_scale = 5
-        self.forward_loss_scale = -3
+        self.forward_loss_scale = 3
         self.inverse_loss_scale = 0.2
         self.intrinsic_reward_scale = 5
 
@@ -63,7 +63,7 @@ class Learner:
         return self.weights_id
 
     def compute_icm_loss(self, b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask,
-                         idxes, weights, pre_obs):
+                         idxes, weights, pre_obs, epoch, r_t):
 
         b_next_seq_len = [(seq_len + forward_steps).item() for seq_len, forward_steps in
                           zip(b_seq_len, b_steps)]
@@ -73,25 +73,34 @@ class Learner:
         b_q = self.model(b_obs[:, :-configs.forward_steps], b_seq_len, b_hidden,
                          b_comm_mask[:, :-configs.forward_steps]).gather(1, b_action)
 
-        # get ICM results
-        a_vec = F.one_hot(b_action, num_classes=5).squeeze(1)  # convert action from int to one-hot format
-        prediction_s_next, prediction_a_vec, feature_x_next = self.icm.get_full(pre_obs, b_obs, a_vec,
-                                                                                b_comm_mask.detach(), b_next_seq_len,
-                                                                                b_hidden)
+        s_t = b_obs[torch.arange(b_obs.shape[0]), b_seq_len - 1]
+        s_t_prime = b_obs[torch.arange(b_obs.shape[0]), b_seq_len]
+        a_t = b_action
+        a_vec = F.one_hot(a_t, num_classes=5).squeeze(1)
+        prediction_s_next, prediction_a_vec, feature_x_next = self.icm.get_full(s_t, s_t_prime, a_vec)
 
-        # calculate forward prediction and inverse prediction loss
         forward_loss = F.mse_loss(prediction_s_next, feature_x_next.detach(), reduction='none')
         inverse_prediction_loss = F.cross_entropy(prediction_a_vec, b_action.squeeze(1).detach(), reduction='none')
+
+        total_rewards = forward_loss.mean(-1, keepdim=True).clone()
+        if self.use_extrinsic:
+            total_rewards += r_t
 
         with torch.no_grad():
             b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
                                                  b_comm_mask).max(1, keepdim=True)[0]
 
-        td_error = (b_q - (b_reward + (0.99 ** b_steps) * b_q_))
+        td_error = (b_q - (total_rewards + (0.99 ** b_steps) * b_q_))
         loss = (weights * self.huber_loss(td_error)).mean()
-
-        loss_all = (self.td_loss_scale * loss + self.forward_loss_scale * forward_loss.mean() + self.inverse_loss_scale
-                    * inverse_prediction_loss.mean())
+        self.my_summary.add_float.remote(x=epoch, y=loss.item(), title="TD Loss",
+                                         x_name=f"trained epoch")
+        self.my_summary.add_float.remote(x=epoch, y=forward_loss.mean().item(), title="Forward Loss",
+                                         x_name=f"trained epoch")
+        self.my_summary.add_float.remote(x=epoch, y=inverse_prediction_loss.mean().item(),
+                                         title="Inverse Prediction Loss",
+                                         x_name=f"trained epoch")
+        loss_all = (self.td_loss_scale * loss + self.forward_loss_scale * forward_loss +
+                    self.inverse_loss_scale * inverse_prediction_loss)
         return td_error, loss_all
 
     def store_weights(self):
@@ -108,7 +117,7 @@ class Learner:
         data_id = ray.get(self.buffer.get_data.remote())
         data = ray.get(data_id)
         b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
-            idxes, weights, old_ptr, pre_obs = data
+            idxes, weights, old_ptr, pre_obs, r_t = data
 
         b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
             b_reward.to(self.device)
@@ -117,14 +126,13 @@ class Learner:
         b_hidden = b_hidden.to(self.device)
         b_comm_mask = b_comm_mask.to(self.device)
         pre_obs = pre_obs.to(self.device)
+        r_t = r_t.to(self.device)
         return b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
-            idxes, weights, old_ptr, pre_obs
+            idxes, weights, old_ptr, pre_obs, r_t
 
     def param_update(self, loss, scaler):
         self.optimizer.zero_grad()
         scaler.scale(loss).backward()
-
-        self.my_summary.add_float.remote(x=self.counter, y=loss.item(), title="Loss", x_name="Step")
 
         scaler.unscale_(self.optimizer)
         nn.utils.clip_grad_norm_(self.model.parameters(), 40)
@@ -143,11 +151,11 @@ class Learner:
             for i in range(1, step_length):
 
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
-                    idxes, weights, old_ptr, pre_obs = self.get_data()
+                    idxes, weights, old_ptr, pre_obs, r_t = self.get_data()
 
                 td_error, loss = self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
                                                        b_comm_mask, \
-                                                       idxes, weights, pre_obs)
+                                                       idxes, weights, pre_obs, epoch, r_t)
 
                 priorities = td_error.detach().squeeze().abs().clamp(1e-4).cpu().numpy()
 
@@ -187,8 +195,6 @@ class Learner:
         if self.counter != self.last_counter:
             average_loss = self.loss / (self.counter - self.last_counter)
             print('loss: {:.4f}'.format(average_loss))
-            self.my_summary.add_float.remote(x=self.counter, y=average_loss, title="Average Loss",
-                                             x_name=f"self.counter")
         self.last_counter = self.counter
         self.loss = 0
         return self.done

@@ -112,6 +112,7 @@ class GlobalBuffer:
         b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_comm_mask = [], [], [], [], [], [], []
         b_hidden = []
         b_pre_obs = []
+        r_t = []
         with self.lock:
 
             idxes, priorities = self.priority_tree.batch_sample(batch_size)
@@ -160,6 +161,7 @@ class GlobalBuffer:
                 if pre_obs.shape[0] < configs.seq_len + configs.forward_steps:
                     pre_obs = np.pad(pre_obs, ((0, pad_len), (0, 0), (0, 0), (0, 0), (0, 0)))
                 action = self.act_buf[idx]
+                r_t_value = self.rew_buf[idx]
                 reward = 0
                 for i in range(steps):
                     reward += self.rew_buf[idx + i] * 0.99 ** i
@@ -179,6 +181,7 @@ class GlobalBuffer:
                 b_seq_len.append(seq_len)
                 b_hidden.append(hidden)
                 b_comm_mask.append(comm_mask)
+                r_t.append(r_t_value)
 
             # importance sampling weight
             min_p = np.min(priorities)
@@ -198,6 +201,7 @@ class GlobalBuffer:
                 torch.from_numpy(weights).unsqueeze(1),
                 self.ptr,
                 torch.from_numpy(np.stack(b_pre_obs).astype(np.float16)),
+                torch.HalfTensor(r_t).unsqueeze(1),
             )
             return data
 
