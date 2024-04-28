@@ -99,7 +99,7 @@ class Learner:
         self.my_summary.add_float.remote(x=epoch, y=inverse_prediction_loss.mean().item(),
                                          title="Inverse Prediction Loss",
                                          x_name=f"trained epoch")
-        loss_all = (self.td_loss_scale * loss + self.forward_loss_scale * forward_loss +
+        loss_all = (self.td_loss_scale * loss + self.forward_loss_scale * forward_loss.mean() +
                     self.inverse_loss_scale * inverse_prediction_loss)
         return td_error, loss_all
 
