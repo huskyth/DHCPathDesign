@@ -76,6 +76,9 @@ class Actor:
 
             self.update_counter += 1
 
+            if not self.update_counter % configs.actor_random_generate_acceleration:
+                self.env.set_distance(self.env.distance + 1)
+
             if self.update_counter == configs.actor_update_steps:
                 self.update_weights()
                 self.update_counter = 0

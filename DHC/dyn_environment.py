@@ -158,6 +158,9 @@ class Environment:
         self.last_actions = np.zeros((self.num_agents, 5, 2 * obs_radius + 1, 2 * obs_radius + 1), dtype=bool)
         self.imgs = []
 
+    def set_distance(self, distance):
+        self.distance = distance
+
     def update_env_settings_set(self, new_env_settings_set):
         self.env_set = new_env_settings_set
 

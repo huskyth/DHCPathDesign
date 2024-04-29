@@ -39,6 +39,7 @@ seq_len = 16
 load_model = None
 
 actor_update_steps = 400
+actor_random_generate_acceleration = 400
 
 # gradient norm clipping
 grad_norm_dqn = 40
