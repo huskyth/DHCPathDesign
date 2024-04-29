@@ -54,9 +54,9 @@ class Learner:
         self.loss = 0
 
         self.use_extrinsic = True
-        self.td_loss_scale = 5
-        self.forward_loss_scale = 3
-        self.inverse_loss_scale = 0.2
+        self.td_loss_scale = 1
+        self.forward_loss_scale = 0.5
+        self.inverse_loss_scale = 0.5
         self.intrinsic_reward_scale = 5
 
     def get_weights(self):
@@ -100,7 +100,7 @@ class Learner:
                                          title="Inverse Prediction Loss",
                                          x_name=f"trained epoch")
         loss_all = (self.td_loss_scale * loss + self.forward_loss_scale * forward_loss.mean() +
-                    self.inverse_loss_scale * inverse_prediction_loss)
+                    self.inverse_loss_scale * inverse_prediction_loss.mean())
         return td_error, loss_all
 
     def store_weights(self):

@@ -6,6 +6,7 @@ import torch
 
 from DHC import configs
 from DHC.buffer import LocalBuffer
+from DHC.configs import DEBUG_MODE
 from DHC.global_buffer import GlobalBuffer
 from DHC.learner import Learner
 from DHC.model import Network
@@ -73,6 +74,9 @@ class Actor:
                 time_ += 1
                 print(f"id: {self.id}, episode_length = {episode_length}, is Done {done} times = {time_}")
                 episode_length = 0
+
+                if DEBUG_MODE:
+                    break
 
             self.update_counter += 1
 

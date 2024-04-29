@@ -1,3 +1,5 @@
+DEBUG_MODE = False
+
 communication = False
 ############################################################
 ####################    environment     ####################
@@ -25,16 +27,16 @@ action_dim = 5
 ####################         DQN        ####################
 ############################################################
 
-num_actors = 2
+num_actors = 16 if not DEBUG_MODE else 1
 log_interval = 10
 training_times = 60000
 save_interval = 2000
 gamma = 0.99
-batch_size = 16
+batch_size = 128
 learning_starts = 50000
 target_network_update_freq = 1000
 save_path = str(MODEL_FILE)
-max_episode_length = 256
+max_episode_length = 128 if not DEBUG_MODE else 2
 seq_len = 16
 load_model = None
 
@@ -77,3 +79,4 @@ num_test_cases = 200
 # map length, number of agents, density
 test_env_settings = ((40, 4, 0.3), (40, 8, 0.3), (40, 16, 0.3), (40, 32, 0.3), (40, 64, 0.3),
                      (80, 4, 0.3), (80, 8, 0.3), (80, 16, 0.3), (80, 32, 0.3), (80, 64, 0.3))
+

@@ -11,13 +11,12 @@ from DHC.learner import Learner
 from DHC.utils.tensor_board_tool import MySummary
 from global_buffer import GlobalBuffer
 import configs
+from configs import DEBUG_MODE
 
 os.environ["OMP_NUM_THREADS"] = "1"
 torch.manual_seed(2022)
 np.random.seed(2022)
 random.seed(2022)
-
-DEBUG_MODE = False
 
 
 def ray_init():
@@ -34,7 +33,7 @@ def epsilon():
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray_init()
     buffer = GlobalBuffer.remote()
-    my_summary = MySummary.remote(use_wandb=False)
+    my_summary = MySummary.remote(use_wandb=True)
     learner = Learner.remote(buffer=buffer, summary=my_summary)
     time.sleep(1)
     actors = [Actor.remote(i, 0.4 ** (1 + (i / (num_actors + epsilon())) * 7),
@@ -47,6 +46,8 @@ def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
         time.sleep(5)
         ray.get(learner.stats.remote(5))
         ray.get(buffer.stats.remote(5))
+        if DEBUG_MODE:
+            break
 
     print('start training')
     buffer.run.remote()
