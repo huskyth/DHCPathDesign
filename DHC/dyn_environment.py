@@ -1,7 +1,5 @@
 import copy
-import random
 from typing import List
-import numpy as np
 import matplotlib.pyplot as plt
 
 import configs
@@ -75,34 +73,12 @@ def map_partition(map):
 
 
 class Environment:
-    def __init__(self, num_agents: int = configs.init_env_settings[0], map_size: tuple = configs.map_size,
-                 map_length: int = configs.init_env_settings[1],
-                 obs_radius: int = configs.obs_radius, reward_fn: dict = configs.reward_fn, fix_density=None,
-                 curriculum=False, init_env_settings_set=configs.init_env_settings):
-        self.heuri_map = None
-        self.fig = None
-        self.dyn_map = 0
-        self.curriculum = curriculum
-        if curriculum:
-            self.env_set = [init_env_settings_set]
-            self.num_agents = init_env_settings_set[0]
-            self.map_size = map_size
-        else:
-            self.num_agents = num_agents
-            self.map_size = map_size
 
-        self.static_obs = StaticObstacle()
-        self.map = self.static_obs.static_map
-        self.dynamic_ped = DynamicPedestrian(self.static_obs.rows, self.static_obs.columns)
-        self.t = 0
-
-        partition_list = map_partition(self.map)
-        partition_list = [partition for partition in partition_list if len(partition) >= 2]
-
+    def _normal_generate(self):
+        partition_list = copy.deepcopy(self.partition_list)
         self.agents_pos = np.empty((self.num_agents, 2), dtype=int)
         self.goals_pos = np.empty((self.num_agents, 2), dtype=int)
         pos_num = sum([len(partition) for partition in partition_list])
-        self.first_blank_list = partition_list[0]
 
         # loop to assign agent original position and goal position for each agent
         for i in range(self.num_agents):
@@ -129,6 +105,50 @@ class Environment:
 
             partition_list = [partition for partition in partition_list if len(partition) >= 2]
             pos_num = sum([len(partition) for partition in partition_list])
+
+    def _random_generate(self):
+        agent_list, blank_list = self.generate_n_position(4)
+        generate_list = self.generate_length_n(blank_list, agent_list, self.distance)
+        self.agents_pos = np.array(agent_list, dtype=int)
+        self.goals_pos = np.array(generate_list, dtype=int)
+
+    def generate_agent_and_goal(self):
+        if self.use_random:
+            self._random_generate()
+        else:
+            self._normal_generate()
+
+    def __init__(self, num_agents: int = configs.init_env_settings[0], map_size: tuple = configs.map_size,
+                 map_length: int = configs.init_env_settings[1],
+                 obs_radius: int = configs.obs_radius, reward_fn: dict = configs.reward_fn, fix_density=None,
+                 curriculum=False, init_env_settings_set=configs.init_env_settings):
+        self.heuri_map = None
+        self.distance = 1
+
+        self.fig = None
+        self.dyn_map = 0
+        self.curriculum = curriculum
+        self.use_random = True
+        if curriculum:
+            self.env_set = [init_env_settings_set]
+            self.num_agents = init_env_settings_set[0]
+            self.map_size = map_size
+        else:
+            self.num_agents = num_agents
+            self.map_size = map_size
+
+        self.static_obs = StaticObstacle()
+        self.map = self.static_obs.static_map
+        self.dynamic_ped = DynamicPedestrian(self.static_obs.rows, self.static_obs.columns)
+        self.t = 0
+
+        partition_list = map_partition(self.map)
+        partition_list = [partition for partition in partition_list if len(partition) >= 2]
+
+        self.partition_list = partition_list
+        self.first_blank_list = partition_list[0]
+
+        self.generate_agent_and_goal()
 
         self.obs_radius = obs_radius
 
@@ -161,32 +181,9 @@ class Environment:
         partition_list = map_partition(self.map)
         partition_list = [partition for partition in partition_list if len(partition) >= 2]
 
-        self.agents_pos = np.empty((self.num_agents, 2), dtype=int)
-        self.goals_pos = np.empty((self.num_agents, 2), dtype=int)
+        assert self.partition_list == partition_list
 
-        pos_num = sum([len(partition) for partition in partition_list])
-
-        for i in range(self.num_agents):
-
-            pos_idx = random.randint(0, pos_num - 1)
-            partition_idx = 0
-            for partition in partition_list:
-                if pos_idx >= len(partition):
-                    pos_idx -= len(partition)
-                    partition_idx += 1
-                else:
-                    break
-
-            pos = random.choice(partition_list[partition_idx])
-            partition_list[partition_idx].remove(pos)
-            self.agents_pos[i] = np.asarray(pos, dtype=int)
-
-            pos = random.choice(partition_list[partition_idx])
-            partition_list[partition_idx].remove(pos)
-            self.goals_pos[i] = np.asarray(pos, dtype=int)
-
-            partition_list = [partition for partition in partition_list if len(partition) >= 2]
-            pos_num = sum([len(partition) for partition in partition_list])
+        self.generate_agent_and_goal()
 
         self.steps = 0
         self.get_heuri_map()
@@ -279,7 +276,7 @@ class Environment:
 
     def generate_length_n(self, blank_area_list, agent_position_list, distance):
         blank_area_list = copy.deepcopy(blank_area_list)
-        agent_generate_list = []
+        goal_generate_list = []
         for i in range(configs.num_agents):
             record_map = set()
             test_time = 0
@@ -287,9 +284,8 @@ class Environment:
                 test_time += 1
                 if len(record_map) == len(select_list):
                     temp = random.randint(0, len(blank_area_list) - 1)
-                    agent_generate_list.append(list(blank_area_list)[temp])
+                    goal_generate_list.append(list(blank_area_list)[temp])
                     blank_area_list.remove(list(blank_area_list)[temp])
-                    print(f"test time {test_time}")
                     break
                 direction = random.randint(0, len(select_list) - 1)
                 agent_position = agent_position_list[i]
@@ -306,11 +302,10 @@ class Environment:
                 if (selected_x, selected_y) not in blank_area_list:
                     record_map.add(direction)
                     continue
-                agent_generate_list.append((selected_x, selected_y))
+                goal_generate_list.append((selected_x, selected_y))
                 blank_area_list.remove((selected_x, selected_y))
-                print(f"test time {test_time}")
                 break
-        return agent_generate_list
+        return goal_generate_list
 
     def generate_n_position(self, n):
         agent_list = []
@@ -564,13 +559,4 @@ class Environment:
 
 if __name__ == '__main__':
     e = Environment()
-    agent_list, blank_list = e.generate_n_position(4)
-    print(agent_list)
-    agent_list_copy = copy.deepcopy(agent_list)
-    blank_list_copy = copy.deepcopy(blank_list)
-    test_time = 0
-    for i in range(1, 100000 + 1):
-        generate_list = e.generate_length_n(blank_list, agent_list, i)
-        test_time += 1
-        print(generate_list)
-    print(f"test time = {test_time}")
+    e.generate_agent_and_goal()
