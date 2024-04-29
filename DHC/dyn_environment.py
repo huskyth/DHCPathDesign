@@ -1,35 +1,20 @@
+import copy
+import random
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.ion()
 import configs
 from construct_map.static_map import StaticObstacle
 from construct_map.dynamic_map import DynamicPedestrian
 import pandas as pd
+from utils.math_tool import *
 
-'''
-我修改了，原代码也是这样
-actions:
-    list of indices
-        0 stay
-        1 up
-        2 down
-        3 left
-        4 right
-'''
-int_action = {0:
-                  "stay",
-              1:
-                  "up",
-              2:
-                  "down",
-              3:
-                  "left",
-              4:
-                  "right"
-              }
+plt.ion()
+
+int_action = {0: "stay", 1: "up", 2: "down", 3: "left", 4: "right"}
 action_list = np.array([[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], dtype=int)
+select_list = np.array([[-1, 0], [1, 0], [0, -1], [0, 1]], dtype=int)
 
 color_map = np.array([[255, 255, 255],  # white
                       [190, 190, 190],  # gray
@@ -89,9 +74,6 @@ def map_partition(map):
     return partition_list
 
 
-from utils.math_tool import *
-
-
 class Environment:
     def __init__(self, num_agents: int = configs.init_env_settings[0], map_size: tuple = configs.map_size,
                  map_length: int = configs.init_env_settings[1],
@@ -120,6 +102,7 @@ class Environment:
         self.agents_pos = np.empty((self.num_agents, 2), dtype=int)
         self.goals_pos = np.empty((self.num_agents, 2), dtype=int)
         pos_num = sum([len(partition) for partition in partition_list])
+        self.first_blank_list = partition_list[0]
 
         # loop to assign agent original position and goal position for each agent
         for i in range(self.num_agents):
@@ -293,6 +276,53 @@ class Environment:
         # 填充;在各维度的各个方向上想要填补的长度
         self.heuri_map = np.pad(self.heuri_map, (
             (0, 0), (0, 0), (self.obs_radius, self.obs_radius), (self.obs_radius, self.obs_radius)))
+
+    def generate_length_n(self, blank_area_list, agent_position_list, distance):
+        blank_area_list = copy.deepcopy(blank_area_list)
+        agent_generate_list = []
+        for i in range(configs.num_agents):
+            record_map = set()
+            test_time = 0
+            while True:
+                test_time += 1
+                if len(record_map) == len(select_list):
+                    temp = random.randint(0, len(blank_area_list) - 1)
+                    agent_generate_list.append(list(blank_area_list)[temp])
+                    blank_area_list.remove(list(blank_area_list)[temp])
+                    print(f"test time {test_time}")
+                    break
+                direction = random.randint(0, len(select_list) - 1)
+                agent_position = agent_position_list[i]
+                action = select_list[direction]
+                selected_x, selected_y = agent_position[0] + distance * action[0], \
+                                         agent_position[1] + distance * action[1]
+                if selected_x < 0 or selected_y < 0 or selected_x >= self.map.shape[0] \
+                        or selected_y >= self.map.shape[1]:
+                    record_map.add(direction)
+                    continue
+                if self.map[selected_x, selected_y] == 1:
+                    record_map.add(direction)
+                    continue
+                if (selected_x, selected_y) not in blank_area_list:
+                    record_map.add(direction)
+                    continue
+                agent_generate_list.append((selected_x, selected_y))
+                blank_area_list.remove((selected_x, selected_y))
+                print(f"test time {test_time}")
+                break
+        return agent_generate_list
+
+    def generate_n_position(self, n):
+        agent_list = []
+        blank_list_copy = copy.deepcopy(self.first_blank_list)
+        assert len(self.first_blank_list) >= n
+        list_n = len(self.first_blank_list)
+        while len(agent_list) != n:
+            idx = random.randint(0, list_n - 1)
+            agent_list.append(blank_list_copy[idx])
+            del blank_list_copy[idx]
+            list_n = len(blank_list_copy)
+        return agent_list, set(blank_list_copy)
 
     def step(self, actions: List[int], pde_df=0):
         '''
@@ -522,7 +552,6 @@ class Environment:
                 action_text = plt.text(agent_y + 1, agent_x + 1, info, color='black', ha='center', va='center')
                 self.texts.append((agent_text, goal_text, action_text))
 
-
         plt.imshow(color_map[map], animated=True)
 
         plt.show()
@@ -531,3 +560,17 @@ class Environment:
     def close(self, save=False):
         plt.close()
         del self.fig
+
+
+if __name__ == '__main__':
+    e = Environment()
+    agent_list, blank_list = e.generate_n_position(4)
+    print(agent_list)
+    agent_list_copy = copy.deepcopy(agent_list)
+    blank_list_copy = copy.deepcopy(blank_list)
+    test_time = 0
+    for i in range(1, 100000 + 1):
+        generate_list = e.generate_length_n(blank_list, agent_list, i)
+        test_time += 1
+        print(generate_list)
+    print(f"test time = {test_time}")
