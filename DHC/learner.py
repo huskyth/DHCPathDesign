@@ -62,9 +62,8 @@ class Learner:
     def get_weights(self):
         return self.weights_id
 
-    def compute_icm_loss(self, b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask,
-                         idxes, weights, pre_obs, epoch, r_t):
-
+    def q_loss(self, b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask,
+               idxes, weights, pre_obs, epoch, r_t):
         b_next_seq_len = [(seq_len + forward_steps).item() for seq_len, forward_steps in
                           zip(b_seq_len, b_steps)]
         b_next_seq_len = torch.LongTensor(b_next_seq_len)
@@ -72,7 +71,19 @@ class Learner:
         # TODO://
         b_q = self.model(b_obs[:, :-configs.forward_steps], b_seq_len, b_hidden,
                          b_comm_mask[:, :-configs.forward_steps]).gather(1, b_action)
+        with torch.no_grad():
+            b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
+                                                 b_comm_mask).max(1, keepdim=True)[0]
+        td_error = (b_q - (b_reward + (0.99 ** b_steps) * b_q_))
+        loss = (weights * self.huber_loss(td_error)).mean()
 
+        self.my_summary.add_float.remote(x=epoch, y=loss.item(), title="TD Loss",
+                                         x_name=f"trained epoch")
+
+        return td_error, loss
+
+    def compute_icm_loss(self, b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask,
+                         idxes, weights, pre_obs, epoch, r_t):
         s_t = b_obs[torch.arange(b_obs.shape[0]), b_seq_len - 1]
         s_t_prime = b_obs[torch.arange(b_obs.shape[0]), b_seq_len]
         a_t = b_action
@@ -86,22 +97,14 @@ class Learner:
         if self.use_extrinsic:
             total_rewards += r_t
 
-        with torch.no_grad():
-            b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
-                                                 b_comm_mask).max(1, keepdim=True)[0]
-
-        td_error = (b_q - (total_rewards + (0.99 ** b_steps) * b_q_))
-        loss = (weights * self.huber_loss(td_error)).mean()
-        self.my_summary.add_float.remote(x=epoch, y=loss.item(), title="TD Loss",
-                                         x_name=f"trained epoch")
         self.my_summary.add_float.remote(x=epoch, y=forward_loss.mean().item(), title="Forward Loss",
                                          x_name=f"trained epoch")
         self.my_summary.add_float.remote(x=epoch, y=inverse_prediction_loss.mean().item(),
                                          title="Inverse Prediction Loss",
                                          x_name=f"trained epoch")
-        loss_all = (self.td_loss_scale * loss + self.forward_loss_scale * forward_loss.mean() +
-                    self.inverse_loss_scale * inverse_prediction_loss.mean())
-        return td_error, loss_all
+        icm_loss = self.forward_loss_scale * forward_loss.mean() + self.inverse_loss_scale * inverse_prediction_loss.mean()
+
+        return icm_loss
 
     def store_weights(self):
         state_dict = self.model.state_dict()
@@ -153,9 +156,14 @@ class Learner:
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
                     idxes, weights, old_ptr, pre_obs, r_t = self.get_data()
 
-                td_error, loss = self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
-                                                       b_comm_mask, \
-                                                       idxes, weights, pre_obs, epoch, r_t)
+                td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
+                                             b_comm_mask, \
+                                             idxes, weights, pre_obs, epoch, r_t)
+
+                # if i % 3 == 0:
+                #     loss += self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
+                #                                   b_comm_mask, \
+                #                                   idxes, weights, pre_obs, epoch, r_t)
 
                 priorities = td_error.detach().squeeze().abs().clamp(1e-4).cpu().numpy()
 

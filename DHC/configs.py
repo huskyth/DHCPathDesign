@@ -32,7 +32,7 @@ log_interval = 10
 training_times = 60000
 save_interval = 2000
 gamma = 0.99
-batch_size = 128
+batch_size = 256
 learning_starts = 50000
 target_network_update_freq = 1000
 save_path = str(MODEL_FILE)
@@ -41,7 +41,7 @@ seq_len = 16
 load_model = None
 
 actor_update_steps = 400
-actor_random_generate_acceleration = 400
+actor_random_generate_acceleration = 4000
 
 # gradient norm clipping
 grad_norm_dqn = 40

@@ -80,8 +80,11 @@ class Actor:
 
             self.update_counter += 1
 
-            if not self.update_counter % configs.actor_random_generate_acceleration:
+            if (1 + time_) % configs.actor_random_generate_acceleration == 0 and self.env.use_random:
                 self.env.set_distance(self.env.distance + 1)
+                if self.id == logger:
+                    self.my_summary.add_float.remote(x=self.epoch + 1, y=self.env.distance, title="Distance Value",
+                                                     x_name=f"Actor {self.id}'s episode count")
 
             if self.update_counter == configs.actor_update_steps:
                 self.update_weights()
