@@ -7,6 +7,7 @@ from construct_map.static_map import StaticObstacle
 from construct_map.dynamic_map import DynamicPedestrian
 import pandas as pd
 from utils.math_tool import *
+import torch
 
 plt.ion()
 
@@ -128,7 +129,7 @@ class Environment:
         self.fig = None
         self.dyn_map = 0
         self.curriculum = curriculum
-        self.use_random = True
+        self.use_random = False
         if curriculum:
             self.env_set = [init_env_settings_set]
             self.num_agents = init_env_settings_set[0]
@@ -451,6 +452,10 @@ class Environment:
             rewards = [self.reward_fn['finish'] for _ in range(self.num_agents)]
         else:
             done = False
+
+        reward_signal = [x.item() for x in torch.from_numpy((self.agents_pos == self.goals_pos)).sum(dim=1)]
+        rewards = [self.reward_fn['finish'] if reward_signal[i] > 1 else rewards[i] for i in range(self.num_agents)]
+        print(f"reward list is {rewards}")
 
         info = {'step': self.steps - 1}
 
