@@ -69,8 +69,10 @@ class Learner:
         b_next_seq_len = torch.LongTensor(b_next_seq_len)
 
         # TODO://
+        b_action = b_action.squeeze(1).unsqueeze(2).cpu().numpy().repeat(5, axis=2)
+        b_action = torch.tensor(b_action, dtype=torch.int64).to(self.device)
         b_q = self.model(b_obs[:, :-configs.forward_steps], b_seq_len, b_hidden,
-                         b_comm_mask[:, :-configs.forward_steps]).gather(1, b_action)
+                         b_comm_mask[:, :-configs.forward_steps]).gather(2, b_action)[:,:,0]
         with torch.no_grad():
             b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
                                                  b_comm_mask).max(1, keepdim=True)[0]

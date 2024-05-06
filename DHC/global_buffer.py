@@ -35,7 +35,7 @@ class GlobalBuffer:
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=bool)
         self.pre_obs_buf = np.zeros(
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=bool)
-        self.act_buf = np.zeros((local_buffer_capacity * episode_capacity), dtype=np.uint8)
+        self.act_buf = np.zeros((local_buffer_capacity * episode_capacity, configs.max_num_agents), dtype=np.uint8)
         self.rew_buf = np.zeros((local_buffer_capacity * episode_capacity), dtype=np.float16)
         self.hid_buf = np.zeros((local_buffer_capacity * episode_capacity, configs.max_num_agents, configs.hidden_dim),
                                 dtype=np.float16)

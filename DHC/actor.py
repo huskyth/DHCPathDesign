@@ -48,7 +48,7 @@ class Actor:
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
             if self.id == logger:
                 self.env.render(actions)
-            local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, comm_mask)
+            local_buffer.add(q_val, actions, rewards[0], next_obs, hidden, comm_mask)
             if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos
             else:
@@ -56,18 +56,16 @@ class Actor:
                     data = local_buffer.finish()
                     print(f"done~~~ {self.id}")
                     success_ += 1
-                    if self.id == logger:
-                        self.my_summary.add_float.remote(x=self.epoch + 1, y=success_, title="Success Count",
-                                                         x_name=f"{self.id}_epoch")
+                    self.my_summary.add_float.remote(x=self.epoch + 1, y=success_, title="Success Count",
+                                                     x_name=f"{self.id}_epoch")
 
                 else:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
-                    data = local_buffer.finish(q_val[0], comm_mask)
+                    data = local_buffer.finish(q_val, comm_mask)
                 return_value = data[-2]
-                if self.id == logger:
-                    self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
-                                                     x_name=f"Actor {self.id}'s episode count")
+                self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
+                                                 x_name=f"Actor {self.id}'s episode count")
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()
                 self.epoch += 1
@@ -82,9 +80,8 @@ class Actor:
 
             if (1 + time_) % configs.actor_random_generate_acceleration == 0 and self.env.use_random:
                 self.env.set_distance(self.env.distance + 1)
-                if self.id == logger:
-                    self.my_summary.add_float.remote(x=self.epoch + 1, y=self.env.distance, title="Distance Value",
-                                                     x_name=f"Actor {self.id}'s episode count")
+                self.my_summary.add_float.remote(x=self.epoch + 1, y=self.env.distance, title="Distance Value",
+                                                 x_name=f"Actor {self.id}'s episode count")
 
             if self.update_counter == configs.actor_update_steps:
                 self.update_weights()

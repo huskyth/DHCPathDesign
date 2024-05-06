@@ -19,12 +19,9 @@ def test_model(model_name):
     '''
     test model in 'models' file with model number
     '''
-    network = Network()
-    network.eval()
-    network.to(device)
     weight_file = os.path.join(configs.save_path, model_name)
-    state_dict = model_load(weight_file, device)
-    network.load_state_dict(state_dict['model_state'])
+    network = model_load(weight_file, device)
+    network.to(device)
     network.eval()
     network.share_memory()
 
@@ -62,12 +59,10 @@ def make_animation(model_name, steps: int = 1000):
                           [255, 165, 0],  # orange
                           [0, 250, 154]])  # green
 
-    network = Network()
-    network.eval()
-    network.to(device)
     weight_file = os.path.join(configs.save_path, model_name)
-    state_dict = model_load(weight_file, device)
-    network.load_state_dict(state_dict['model_state'])
+    network = model_load(weight_file, device)
+    network.to(device)
+    network.eval()
 
     env = Environment()
 
@@ -125,7 +120,7 @@ def make_animation(model_name, steps: int = 1000):
     ani = animation.ArtistAnimation(fig, imgs, interval=600, blit=True, repeat_delay=1000)
 
     ticks = time.strftime("%Y-%m-%d-%H-%M", time.localtime())
-    ani.save('videos/{}.gif'.format(ticks))
+    ani.save(configs.VIDEOS_FILE / '{}.gif'.format(ticks))
 
 
 def create_test(test_env_settings, num_test_cases):
@@ -165,4 +160,3 @@ def test_while_training(network, num=100):
 if __name__ == '__main__':
     test_model(TEST_MODEL_NAME)
     make_animation(model_name=TEST_MODEL_NAME)
-    network = Network()

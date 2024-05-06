@@ -38,7 +38,7 @@ class MySummary:
     def add_float(self, x, y, title, x_name):
         self.writer.add_scalar(title, y, x)
         if self.use_wandb:
-            self.wandb_logger.log({x_name: x, title: y})
+            self.wandb_logger.log({title: y})
 
     def close(self):
         self.writer.close()

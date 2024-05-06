@@ -1,6 +1,8 @@
 import copy
 
 import numpy as np
+import torch
+
 import configs
 
 
@@ -79,11 +81,11 @@ class LocalBuffer:
 
         self.obs_buf = np.zeros((capacity + 1, num_agents, *obs_shape), dtype=bool)
         self.pre_obs_buf = np.zeros((capacity + 1, num_agents, *obs_shape), dtype=bool)
-        self.act_buf = np.zeros(capacity, dtype=np.uint8)
+        self.act_buf = np.zeros((capacity, num_agents), dtype=np.uint8)
         self.rew_buf = np.zeros(capacity, dtype=np.float16)
         self.hid_buf = np.zeros((capacity, num_agents, hidden_dim), dtype=np.float16)
         self.comm_mask_buf = np.zeros((capacity + 1, num_agents, num_agents), dtype=bool)
-        self.q_buf = np.zeros((capacity + 1, action_dim), dtype=np.float32)
+        self.q_buf = np.zeros((capacity + 1, num_agents, action_dim), dtype=np.float32)
 
         self.capacity = capacity
         self.size = 0
@@ -98,7 +100,7 @@ class LocalBuffer:
             comm_mask: np.ndarray):
         assert self.size < self.capacity
 
-        self.act_buf[self.size] = action
+        self.act_buf[self.size] = np.array(action)
         self.rew_buf[self.size] = reward
         self.obs_buf[self.size + 1] = next_obs
         self.q_buf[self.size] = q_val
@@ -130,11 +132,17 @@ class LocalBuffer:
 
         q_max_idx = np.array([min(i + configs.forward_steps, self.size) for i in range(self.size)])
         gamma = np.array([0.99 ** min(configs.forward_steps, self.size - i) for i in range(self.size)])
-        q_max = np.max(self.q_buf[q_max_idx], axis=1) * gamma
+        gamma = np.repeat(gamma, 4).reshape(self.size, -1)
+        q_max = np.max(self.q_buf[q_max_idx], axis=-1) * gamma
         ret = self.rew_buf.tolist() + [0 for _ in range(configs.forward_steps - 1)]
+        q_max = q_max.mean(-1)
         reward = np.convolve(ret, [0.99 ** (configs.forward_steps - 1 - i) for i in
                                    range(configs.forward_steps)], 'valid') + q_max
-        q_val = self.q_buf[np.arange(self.size), self.act_buf]
+        act_temp = np.repeat(self.act_buf, configs.action_dim, axis=1).reshape(self.size, configs.num_agents,
+                                                                               configs.action_dim)
+        q_val = torch.gather(torch.from_numpy(self.q_buf), 2, torch.tensor(act_temp, dtype=torch.int64))[:, :, 0].mean(
+            -1)
+        q_val = q_val.numpy()
         td_errors[:self.size] = np.abs(reward - q_val).clip(1e-4)
 
         return_value = (self.rew_buf * 0.99 ** np.arange(0, self.size)).sum()

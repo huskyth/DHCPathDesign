@@ -1,4 +1,4 @@
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 communication = False
 ############################################################
@@ -18,6 +18,9 @@ import os
 FILE = Path(__file__).resolve()
 PROJECT_ROOT = FILE.parent
 MODEL_FILE = PROJECT_ROOT / 'models'
+VIDEOS_FILE = PROJECT_ROOT / 'videos'
+if not VIDEOS_FILE.exists():
+    os.mkdir(str(VIDEOS_FILE))
 if not MODEL_FILE.exists():
     os.mkdir(str(MODEL_FILE))
 obs_shape = (6, 2 * obs_radius + 1, 2 * obs_radius + 1)
