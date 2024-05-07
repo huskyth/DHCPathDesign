@@ -3,6 +3,7 @@ import random
 import numpy as np
 import ray
 import torch
+from numpy import mean
 
 from DHC import configs
 from DHC.buffer import LocalBuffer
@@ -47,7 +48,7 @@ class Actor:
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
             if self.id == logger:
                 self.env.render(actions)
-            local_buffer.add(q_val, actions, rewards[0], next_obs, hidden, comm_mask)
+            local_buffer.add(q_val, actions, mean(rewards).item(), next_obs, hidden, comm_mask)
             if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos
             else:
