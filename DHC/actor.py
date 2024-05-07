@@ -32,7 +32,6 @@ class Actor:
         self.epoch = 0
 
     def run(self):
-        print(f"self.id = {self.id}")
         obs, pos, local_buffer = self.reset()
         episode_length = 0
         time_ = 0

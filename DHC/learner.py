@@ -75,7 +75,7 @@ class Learner:
                          b_comm_mask[:, :-configs.forward_steps]).gather(2, b_action)[:,:,0]
         with torch.no_grad():
             b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
-                                                 b_comm_mask).max(1, keepdim=True)[0]
+                                                 b_comm_mask).max(2)[0]
         td_error = (b_q - (b_reward + (0.99 ** b_steps) * b_q_))
         loss = (weights * self.huber_loss(td_error)).mean()
 

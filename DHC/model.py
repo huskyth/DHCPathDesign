@@ -145,8 +145,8 @@ class Network(nn.Module):
         self.comm = CommBlock(hidden_dim)
 
         # dueling q structure
-        self.adv = nn.Linear(hidden_dim, 5 * configs.num_agents)
-        self.state = nn.Linear(hidden_dim, 1 * configs.num_agents)
+        self.adv = nn.Linear(hidden_dim, 5)
+        self.state = nn.Linear(hidden_dim, 1)
 
         self.hidden = None
 
@@ -186,11 +186,10 @@ class Network(nn.Module):
         self.hidden = self.comm(self.hidden, comm_mask)
         self.hidden = self.hidden.squeeze(0)
 
-        adv_val = self.adv(self.hidden).reshape(-1, configs.num_agents, configs.action_dim)
-        state_val = self.state(self.hidden).reshape(-1, configs.num_agents, 1)
+        adv_val = self.adv(self.hidden)
+        state_val = self.state(self.hidden)
 
         q_val = state_val + adv_val - adv_val.mean(-1, keepdim=True)
-        q_val = q_val.mean(1)
         actions = torch.argmax(q_val, 1).tolist()
         return actions, q_val.numpy(), self.hidden.numpy(), comm_mask.numpy()
 
@@ -220,7 +219,7 @@ class Network(nn.Module):
             hidden = hidden.view(configs.batch_size, num_agents, self.hidden_dim)
             hidden = self.comm(hidden, comm_mask[:, i])
             # only hidden from agent 0
-            hidden_buffer.append(hidden[:, 0])
+            hidden_buffer.append(hidden)
             hidden = hidden.view(configs.batch_size * num_agents, self.hidden_dim)
 
         # hidden buffer size: batch_size x seq_len x self.hidden_dim
@@ -229,8 +228,8 @@ class Network(nn.Module):
         # hidden size: batch_size x self.hidden_dim
         hidden = hidden_buffer[torch.arange(configs.batch_size), steps - 1]
 
-        adv_val = self.adv(hidden).reshape(-1, configs.num_agents, configs.action_dim)
-        state_val = self.state(hidden).reshape(-1, configs.num_agents, 1)
+        adv_val = self.adv(hidden)
+        state_val = self.state(hidden)
 
         q_val = state_val + adv_val - adv_val.mean(-1, keepdim=True)
 
