@@ -132,16 +132,14 @@ class LocalBuffer:
 
         q_max_idx = np.array([min(i + configs.forward_steps, self.size) for i in range(self.size)])
         gamma = np.array([0.99 ** min(configs.forward_steps, self.size - i) for i in range(self.size)])
-        gamma = np.repeat(gamma, 4).reshape(self.size, -1)
-        q_max = np.max(self.q_buf[q_max_idx], axis=-1) * gamma
+        q_max_s_a = np.max(self.q_buf[q_max_idx], axis=-1)
+        q_max = q_max_s_a.mean(-1) * gamma
         ret = self.rew_buf.tolist() + [0 for _ in range(configs.forward_steps - 1)]
-        q_max = q_max.mean(-1)
         reward = np.convolve(ret, [0.99 ** (configs.forward_steps - 1 - i) for i in
                                    range(configs.forward_steps)], 'valid') + q_max
-        act_temp = np.repeat(self.act_buf, configs.action_dim, axis=1).reshape(self.size, configs.num_agents,
-                                                                               configs.action_dim)
-        q_val = torch.gather(torch.from_numpy(self.q_buf), 2, torch.tensor(act_temp, dtype=torch.int64))[:, :, 0].mean(
-            -1)
+        q_buf_numpy = torch.from_numpy(self.q_buf)
+        act_buf_numpy = torch.tensor(self.act_buf, dtype=torch.int64).unsqueeze(-1)
+        q_val = torch.gather(q_buf_numpy, 2, act_buf_numpy).squeeze(-1).mean(-1)
         q_val = q_val.numpy()
         td_errors[:self.size] = np.abs(reward - q_val).clip(1e-4)
 
