@@ -1,13 +1,12 @@
 import copy
 from typing import List
 import matplotlib.pyplot as plt
-
+import torch
 import configs
 from construct_map.static_map import StaticObstacle
 from construct_map.dynamic_map import DynamicPedestrian
 import pandas as pd
 from utils.math_tool import *
-import torch
 
 plt.ion()
 
@@ -197,24 +196,6 @@ class Environment:
 
         return self.observe()
 
-    def load(self, map: np.ndarray, agents_pos: np.ndarray, goals_pos: np.ndarray):
-
-        self.map = np.copy(map)
-        self.agents_pos = np.copy(agents_pos)
-        self.goals_pos = np.copy(goals_pos)
-
-        self.num_agents = agents_pos.shape[0]
-        self.map_size = (self.map.shape[0], self.map.shape[1])
-
-        self.steps = 0
-
-        self.imgs = []
-
-        self.get_heuri_map()
-
-        self.last_actions = np.zeros((self.num_agents, 5, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1),
-                                     dtype=bool)
-
     def get_heuri_map(self):
         # 每个agent都有
         dist_map = np.ones((self.num_agents, *self.map_size), dtype=np.int32) * 2147483647
@@ -324,16 +305,6 @@ class Environment:
         return agent_list, set(blank_list_copy)
 
     def step(self, actions: List[int], pde_df=0):
-        '''
-        actions:
-            list of indices
-                0 stay
-                1 up
-                2 down
-                3 left
-                4 right
-        '''
-        rank_of_agents = rank_agent_by_distance(self.agents_pos, self.goals_pos)
         self.dyn_map = pde_df
         assert len(actions) == self.num_agents, 'only {} actions as input while {} agents in environment'.format(
             len(actions), self.num_agents)

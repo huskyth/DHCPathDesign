@@ -19,8 +19,10 @@ def test_model(model_name):
     '''
     test model in 'models' file with model number
     '''
+    weight_file = os.path.join(configs.save_path, model_name)
     network = Network()
-    network.eval()
+    ckt = model_load(weight_file)
+    network.load_state_dict(ckt[0])
     network.to(device)
     weight_file = os.path.join(configs.save_path, model_name)
     state_dict = model_load(weight_file, device)
@@ -62,7 +64,11 @@ def make_animation(model_name, steps: int = 1000):
                           [255, 165, 0],  # orange
                           [0, 250, 154]])  # green
 
+    weight_file = os.path.join(configs.save_path, model_name)
     network = Network()
+    ckt = model_load(weight_file)
+    network.load_state_dict(ckt[0])
+    network.to(device)
     network.eval()
     network.to(device)
     weight_file = os.path.join(configs.save_path, model_name)
