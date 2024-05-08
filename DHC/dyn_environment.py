@@ -453,9 +453,9 @@ class Environment:
         else:
             done = False
 
-        reward_signal = [x.item() for x in torch.from_numpy((self.agents_pos == self.goals_pos)).sum(dim=1)]
-        rewards = [self.reward_fn['finish'] if reward_signal[i] > 1 else rewards[i] for i in range(self.num_agents)]
-        print(f"reward list is {rewards}")
+        # reward_signal = [x.item() for x in torch.from_numpy((self.agents_pos == self.goals_pos)).sum(dim=1)]
+        #         # rewards = [self.reward_fn['finish'] if reward_signal[i] > 1 else rewards[i] for i in range(self.num_agents)]
+        #         # print(f"reward list is {rewards}")
 
         info = {'step': self.steps - 1}
 

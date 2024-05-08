@@ -1,4 +1,4 @@
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 communication = False
 ############################################################
@@ -7,10 +7,10 @@ communication = False
 map_length = 50
 num_agents = 4
 obs_radius = 4
-reward_fn = dict(move=-0.075,
-                 stay_on_goal=0,
-                 stay_off_goal=-0.075,
-                 collision=-0.5,
+reward_fn = dict(move=-0.5,
+                 stay_on_goal=1,
+                 stay_off_goal=-0.5,
+                 collision=-1,
                  finish=3)
 from pathlib import Path
 import os
@@ -30,7 +30,7 @@ action_dim = 5
 ####################         DQN        ####################
 ############################################################
 
-num_actors = 4 if not DEBUG_MODE else 1
+num_actors = 6 if not DEBUG_MODE else 1
 log_interval = 10
 training_times = 60000
 save_interval = 2000
@@ -43,17 +43,17 @@ max_episode_length = 128 if not DEBUG_MODE else 2
 seq_len = 16
 load_model = None
 
-actor_update_steps = 400
+actor_update_steps = 1000
 actor_random_generate_acceleration = 4000
 
 # gradient norm clipping
 grad_norm_dqn = 40
 
 # n-step forward
-forward_steps = 1
+forward_steps = 2
 
 # global buffer
-episode_capacity = 2048
+episode_capacity = 512
 
 # prioritized replay
 prioritized_replay_alpha = 0.6

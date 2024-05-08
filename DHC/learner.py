@@ -13,7 +13,7 @@ from DHC.icm.icm_model import ICM
 from DHC.model import Network
 from torch.optim import Adam
 
-from DHC.utils.model_save_load_tool import model_save
+from DHC.utils.model_save_load_tool import model_save, model_load
 from torch.cuda.amp import GradScaler
 import torch.nn as nn
 
@@ -22,20 +22,21 @@ import torch.nn.functional as F
 
 @ray.remote(num_cpus=1, num_gpus=1)
 class Learner:
-    def __init__(self, buffer: GlobalBuffer, summary):
+    def __init__(self, buffer: GlobalBuffer, summary, resume):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
         self.icm = ICM().to(device=self.device)
-
+        self.resume = resume
         self.state = None
         self.weight_file = None
 
-        self.optimizer = Adam(list(self.model.parameters()) + list(self.icm.parameters()), lr=1e-3)
+        self.optimizer = Adam(list(self.model.parameters()), lr=1e-3)
         self.avg_reward = 0
         self.avg_finish_cases = 0
         self.avg_step = 0
         self.model.to(self.device)
         self.tar_model = deepcopy(self.model)
+        self.load()
 
         self.scheduler = MultiStepLR(self.optimizer, milestones=[200000, 400000], gamma=0.5)
         self.buffer = buffer
@@ -59,6 +60,13 @@ class Learner:
         self.inverse_loss_scale = 0.5
         self.intrinsic_reward_scale = 5
 
+    def load(self):
+        if self.resume is None: return
+        model_state_dict, optimizer_state_dict = model_load(self.resume)
+        self.model.load_state_dict(model_state_dict)
+        self.optimizer.load_state_dict(optimizer_state_dict)
+        self.tar_model = deepcopy(self.model)
+
     def get_weights(self):
         return self.weights_id
 
@@ -72,11 +80,11 @@ class Learner:
         b_action = b_action.squeeze(1).unsqueeze(2).cpu().numpy().repeat(5, axis=2)
         b_action = torch.tensor(b_action, dtype=torch.int64).to(self.device)
         b_q = self.model(b_obs[:, :-configs.forward_steps], b_seq_len, b_hidden,
-                         b_comm_mask[:, :-configs.forward_steps]).gather(2, b_action)[:,:,0]
+                         b_comm_mask[:, :-configs.forward_steps]).gather(2, b_action)[:, :, 0]
         with torch.no_grad():
             b_q_ = (1 - b_done) * self.tar_model(b_obs, b_next_seq_len, b_hidden,
                                                  b_comm_mask).max(2)[0]
-        td_error = (b_q - (b_reward + (0.99 ** b_steps) * b_q_))
+        td_error = (b_q.mean(-1, keepdims=True) - (b_reward + (0.99 ** b_steps) * b_q_.mean(-1, keepdims=True)))
         loss = (weights * self.huber_loss(td_error)).mean()
 
         self.my_summary.add_float.remote(x=epoch, y=loss.item(), title="TD Loss",
@@ -187,7 +195,7 @@ class Learner:
                     now_time = time.strftime("%Y-%m-%d-%H", time.localtime())
                     path = os.path.join(configs.save_path, '{}-{}.pth'.format(now_time,
                                                                               self.counter))
-                    model_save(self.model, path)
+                    model_save(self.model, self.optimizer, path)
                     print(
                         "save model path:" + os.path.join(configs.save_path, '{}-{}.pth'.
                                                           format(now_time, self.counter)))

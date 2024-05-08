@@ -7,7 +7,7 @@ from numpy import mean
 
 from DHC import configs
 from DHC.buffer import LocalBuffer
-from DHC.configs import DEBUG_MODE
+from DHC.configs import DEBUG_MODE, num_agents
 from DHC.global_buffer import GlobalBuffer
 from DHC.learner import Learner
 from DHC.model import Network
@@ -36,7 +36,6 @@ class Actor:
         obs, pos, local_buffer = self.reset()
         episode_length = 0
         time_ = 0
-        success_ = 0
         logger = 0
         while True:
             episode_length += 1
@@ -44,7 +43,8 @@ class Actor:
                                                                 torch.from_numpy(pos.astype(np.float32)))
             if random.random() < self.epsilon:
                 # Note: only one agent do random action in order to keep the environment stable
-                actions[0] = np.random.randint(0, 5)
+                for i in range(num_agents):
+                    actions[i] = np.random.randint(0, 5)
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
             if self.id == logger:
                 self.env.render(actions)
@@ -55,10 +55,6 @@ class Actor:
                 if done:
                     data = local_buffer.finish()
                     print(f"done~~~ {self.id}")
-                    success_ += 1
-                    self.my_summary.add_float.remote(x=self.epoch + 1, y=success_, title="Success Count",
-                                                     x_name=f"{self.id}_epoch")
-
                 else:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
