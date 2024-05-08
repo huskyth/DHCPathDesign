@@ -32,11 +32,9 @@ class Actor:
         self.epoch = 0
 
     def run(self):
-        print(f"self.id = {self.id}")
         obs, pos, local_buffer = self.reset()
         episode_length = 0
         time_ = 0
-        success_ = 0
         logger = 0
         while True:
             episode_length += 1
@@ -55,19 +53,14 @@ class Actor:
                 if done:
                     data = local_buffer.finish()
                     print(f"done~~~ {self.id}")
-                    success_ += 1
-                    if self.id == logger:
-                        self.my_summary.add_float.remote(x=self.epoch + 1, y=success_, title="Success Count",
-                                                         x_name=f"{self.id}_epoch")
 
                 else:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
                     data = local_buffer.finish(q_val[0], comm_mask)
                 return_value = data[-2]
-                if self.id == logger:
-                    self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
-                                                     x_name=f"Actor {self.id}'s episode count")
+                self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
+                                                 x_name=f"Actor {self.id}'s episode count")
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()
                 self.epoch += 1
