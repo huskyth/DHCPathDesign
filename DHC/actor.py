@@ -42,8 +42,7 @@ class Actor:
                                                                 torch.from_numpy(pos.astype(np.float32)))
             if random.random() < self.epsilon:
                 # Note: only one agent do random action in order to keep the environment stable
-                for i in range(num_agents):
-                    actions[i] = np.random.randint(0, action_dim)
+                actions[0] = np.random.randint(0, action_dim)
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
             if self.id == logger:
                 self.env.render(actions)
