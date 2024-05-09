@@ -3,7 +3,6 @@ import time
 from typing import Tuple
 import ray
 import numpy as np
-from buffer import SumTree
 import configs
 import torch
 
@@ -21,7 +20,6 @@ class GlobalBuffer:
         self.ptr = 0
 
         # prioritized experience replay
-        self.priority_tree = SumTree(episode_capacity * local_buffer_capacity)
         self.alpha = alpha
         self.beta = beta
 
@@ -75,7 +73,7 @@ class GlobalBuffer:
     def add(self, data: Tuple):
         '''
         data: actor_id 0, num_agents 1, map_len 2, obs_buf 3, act_buf 4, rew_buf 5,
-         hid_buf 6, td_errors 7, done 8, size 9, comm_mask 10, return value 11, pre_obs_buf 12,
+         hid_buf 6, td_errors 7, done 8, size 9, return value 10, pre_obs_buf 11,
         '''
         if data[0] >= 12:
             stat_key = (data[1], data[2])
@@ -93,8 +91,6 @@ class GlobalBuffer:
             self.size += data[9]
             self.counter += data[9]
 
-            self.priority_tree.batch_update(idxes, data[7] ** self.alpha)
-
             self.obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[3]
             self.pre_obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[12]
             self.act_buf[start_idx:start_idx + data[9]] = data[4]
@@ -102,11 +98,11 @@ class GlobalBuffer:
             self.hid_buf[start_idx:start_idx + data[9], :data[1]] = data[6]
             self.done_buf[self.ptr] = data[8]
             self.size_buf[self.ptr] = data[9]
-            self.comm_mask_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1] = 0
-            self.comm_mask_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1,
-            :data[1], :data[1]] = data[10]
 
             self.ptr = (self.ptr + 1) % self.capacity
+
+    def random_sample(self, batch_size):
+        return np.random.choice(range(self.size), batch_size)
 
     def sample_batch(self, batch_size: int) -> Tuple:
         b_obs, b_action, b_reward, b_done, b_steps = [], [], [], [], []
@@ -114,8 +110,7 @@ class GlobalBuffer:
         b_pre_obs = []
         r_t = []
         with self.lock:
-
-            idxes, priorities = self.priority_tree.batch_sample(batch_size)
+            idxes = self.random_sample(batch_size)
             global_idxes = idxes // self.local_buffer_capacity
             local_idxes = idxes % self.local_buffer_capacity
 
@@ -172,10 +167,6 @@ class GlobalBuffer:
                 b_hidden.append(hidden)
                 r_t.append(r_t_value)
 
-            # importance sampling weight
-            min_p = np.min(priorities)
-            weights = np.power(priorities / min_p, -self.beta)
-
             data = (
                 torch.from_numpy(np.stack(b_obs).astype(np.float16)),
                 torch.LongTensor(b_action).unsqueeze(1),
@@ -185,32 +176,11 @@ class GlobalBuffer:
                 torch.from_numpy(np.concatenate(b_hidden)),
 
                 idxes,
-                torch.from_numpy(weights).unsqueeze(1),
                 self.ptr,
                 torch.from_numpy(np.stack(b_pre_obs).astype(np.float16)),
                 torch.HalfTensor(r_t).unsqueeze(1),
             )
             return data
-
-    def update_priorities(self, idxes: np.ndarray, priorities: np.ndarray, old_ptr: int):
-        """Update priorities of sampled transitions"""
-        with self.lock:
-
-            # discard the indices that already been discarded in replay buffer during training
-            if self.ptr > old_ptr:
-                # range from [old_ptr, self.ptr)
-                mask = (idxes < old_ptr * self.local_buffer_capacity) | \
-                       (idxes >= self.ptr * self.local_buffer_capacity)
-                idxes = idxes[mask]
-                priorities = priorities[mask]
-            elif self.ptr < old_ptr:
-                # range from [0, self.ptr) & [old_ptr, self,capacity)
-                mask = (idxes < old_ptr * self.local_buffer_capacity) & \
-                       (idxes >= self.ptr * self.local_buffer_capacity)
-                idxes = idxes[mask]
-                priorities = priorities[mask]
-
-            self.priority_tree.batch_update(np.copy(idxes), np.copy(priorities) ** self.alpha)
 
     def log(self, interval, use=False):
         if not use: return

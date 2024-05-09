@@ -63,13 +63,13 @@ class Learner:
         return self.weights_id
 
     def q_loss(self, b_obs, b_action, b_reward, b_done, b_steps, b_hidden,
-               idxes, weights, pre_obs, epoch, r_t):
+               idxes, pre_obs, epoch, r_t):
         # TODO://
         b_q = self.model(b_obs[:, :-configs.forward_steps], b_hidden).gather(1, b_action)
         with torch.no_grad():
             b_q_ = (1 - b_done) * self.tar_model(b_obs[:, -configs.forward_steps:], b_hidden).max(1, keepdim=True)[0]
         td_error = (b_q - (b_reward + (0.99 ** b_steps) * b_q_))
-        loss = (weights * self.huber_loss(td_error)).mean()
+        loss = self.huber_loss(td_error).mean()
 
         self.my_summary.add_float.remote(x=epoch, y=loss.item(), title="TD Loss",
                                          x_name=f"trained epoch")
@@ -114,17 +114,16 @@ class Learner:
         data_id = ray.get(self.buffer.get_data.remote())
         data = ray.get(data_id)
         b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, weights, old_ptr, pre_obs, r_t = data
+            idxes, old_ptr, pre_obs, r_t = data
 
         b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
             b_reward.to(self.device)
-        b_done, b_steps, weights = b_done.to(self.device), b_steps.to(self.device), \
-            weights.to(self.device)
+        b_done, b_steps = b_done.to(self.device), b_steps.to(self.device)
         b_hidden = b_hidden.to(self.device)
         pre_obs = pre_obs.to(self.device)
         r_t = r_t.to(self.device)
         return b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, weights, old_ptr, pre_obs, r_t
+            idxes, old_ptr, pre_obs, r_t
 
     def param_update(self, loss, scaler):
         self.optimizer.zero_grad()
@@ -147,10 +146,10 @@ class Learner:
             for i in range(1, step_length):
 
                 b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-                    idxes, weights, old_ptr, pre_obs, r_t = self.get_data()
+                    idxes, old_ptr, pre_obs, r_t = self.get_data()
 
                 td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-                                             idxes, weights, pre_obs, epoch, r_t)
+                                             idxes, pre_obs, epoch, r_t)
 
                 # if i % 3 == 0:
                 #     loss += self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
@@ -165,8 +164,6 @@ class Learner:
 
                 if i % 5 == 0:
                     self.store_weights()
-
-                self.buffer.update_priorities.remote(idxes, priorities, old_ptr)
 
                 # update target net, save model
                 if i % configs.target_network_update_freq == 0:
