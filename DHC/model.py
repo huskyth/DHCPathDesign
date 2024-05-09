@@ -177,40 +177,24 @@ class Network(nn.Module):
         self.hidden = None
 
     @autocast()
-    def forward(self, obs, steps, hidden):
+    def forward(self, obs, hidden):
         # comm_mask shape: batch_size x seq_len x max_num_agents x max_num_agents
-        max_steps = obs.size(1)
+        batch_size, max_steps = obs.size(0), obs.size(1)
         assert max_steps == 1
         obs = obs.squeeze(1)
+        agent_number = obs.size(1)
 
         obs = obs.contiguous().view(-1, *self.input_shape)
 
-        latent = self.obs_encoder(obs)
+        latent = self.obs_encoder(obs.float())
 
-        hidden = self.recurrent(latent, hidden)
+        hidden = self.recurrent(latent, hidden.float())
+        adv_val = self.adv(hidden).view(batch_size, agent_number, -1)
+        state_val = self.state(hidden).view(batch_size, agent_number, -1)
 
-        hidden_buffer = []
-        for i in range(max_steps):
-            # hidden size: batch_size*num_agents x self.hidden_dim
-            hidden = self.recurrent(latent[i], hidden)
-            hidden = hidden.view(configs.batch_size, num_agents, self.hidden_dim)
-            hidden = self.comm(hidden, comm_mask[:, i])
-            # only hidden from agent 0
-            hidden_buffer.append(hidden[:, 0])
-            hidden = hidden.view(configs.batch_size * num_agents, self.hidden_dim)
+        q_val = state_val + adv_val - adv_val.mean(-1, keepdim=True)
 
-        # hidden buffer size: batch_size x seq_len x self.hidden_dim
-        hidden_buffer = torch.stack(hidden_buffer).transpose(0, 1)
-
-        # hidden size: batch_size x self.hidden_dim
-        hidden = hidden_buffer[torch.arange(configs.batch_size), steps - 1]
-
-        adv_val = self.adv(hidden)
-        state_val = self.state(hidden)
-
-        q_val = state_val + adv_val - adv_val.mean(1, keepdim=True)
-
-        return q_val
+        return q_val[:, 0, :]
 
 
 if __name__ == '__main__':

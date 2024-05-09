@@ -109,7 +109,7 @@ class GlobalBuffer:
             self.ptr = (self.ptr + 1) % self.capacity
 
     def sample_batch(self, batch_size: int) -> Tuple:
-        b_obs, b_action, b_reward, b_done, b_steps, b_seq_len = [], [], [], [], [], []
+        b_obs, b_action, b_reward, b_done, b_steps = [], [], [], [], []
         b_hidden = []
         b_pre_obs = []
         r_t = []
@@ -126,7 +126,6 @@ class GlobalBuffer:
                     .format(local_idx, self.size_buf[global_idx])
 
                 steps = min(configs.forward_steps, (self.size_buf[global_idx].item() - local_idx))
-                seq_len = min(local_idx + 1, configs.seq_len)
 
                 if local_idx < configs.seq_len - 1:
                     obs = self.obs_buf[global_idx * (self.local_buffer_capacity + 1):
@@ -170,7 +169,6 @@ class GlobalBuffer:
                 b_reward.append(reward)
                 b_done.append(done)
                 b_steps.append(steps)
-                b_seq_len.append(seq_len)
                 b_hidden.append(hidden)
                 r_t.append(r_t_value)
 
@@ -184,7 +182,6 @@ class GlobalBuffer:
                 torch.HalfTensor(b_reward).unsqueeze(1),
                 torch.HalfTensor(b_done).unsqueeze(1),
                 torch.HalfTensor(b_steps).unsqueeze(1),
-                torch.LongTensor(b_seq_len),
                 torch.from_numpy(np.concatenate(b_hidden)),
 
                 idxes,
