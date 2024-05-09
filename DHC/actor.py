@@ -45,7 +45,7 @@ class Actor:
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
             if self.id == logger:
                 self.env.render(actions)
-            local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, comm_mask)
+            local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden)
             if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos
             else:
@@ -54,9 +54,8 @@ class Actor:
                     print(f"done~~~ {self.id}")
 
                 else:
-                    _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
-                                                                  torch.from_numpy(next_pos.astype(np.float32)))
-                    data = local_buffer.finish(q_val[0], comm_mask)
+                    _, q_val, hidden = self.model.step(torch.from_numpy(next_obs.astype(np.float32)))
+                    data = local_buffer.finish(q_val[0])
                 return_value = data[-2]
                 self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
                                                  x_name=f"Actor {self.id}'s episode count")

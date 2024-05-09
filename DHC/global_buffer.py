@@ -109,7 +109,7 @@ class GlobalBuffer:
             self.ptr = (self.ptr + 1) % self.capacity
 
     def sample_batch(self, batch_size: int) -> Tuple:
-        b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_comm_mask = [], [], [], [], [], [], []
+        b_obs, b_action, b_reward, b_done, b_steps, b_seq_len = [], [], [], [], [], []
         b_hidden = []
         b_pre_obs = []
         r_t = []
@@ -133,31 +133,23 @@ class GlobalBuffer:
                                        idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[global_idx * (self.local_buffer_capacity + 1):
                                                idx + global_idx + 1 + steps]
-                    comm_mask = self.comm_mask_buf[
-                                global_idx * (self.local_buffer_capacity + 1):
-                                idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
                 elif local_idx == configs.seq_len - 1:
                     obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:
                                        idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[idx + global_idx + 1 - configs.seq_len:
                                                idx + global_idx + 1 + steps]
-                    comm_mask = self.comm_mask_buf[global_idx * (self.local_buffer_capacity + 1)
-                                                   :idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
                 else:
                     obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:
                                        idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[idx + global_idx + 1 - configs.seq_len:
                                                idx + global_idx + 1 + steps]
-                    comm_mask = self.comm_mask_buf[idx + global_idx + 1 - configs.seq_len:
-                                                   idx + global_idx + 1 + steps]
                     hidden = self.hid_buf[idx - configs.seq_len]
 
                 if obs.shape[0] < configs.seq_len + configs.forward_steps:
                     pad_len = configs.seq_len + configs.forward_steps - obs.shape[0]
                     obs = np.pad(obs, ((0, pad_len), (0, 0), (0, 0), (0, 0), (0, 0)))
-                    comm_mask = np.pad(comm_mask, ((0, pad_len), (0, 0), (0, 0)))
                 if pre_obs.shape[0] < configs.seq_len + configs.forward_steps:
                     pre_obs = np.pad(pre_obs, ((0, pad_len), (0, 0), (0, 0), (0, 0), (0, 0)))
                 action = self.act_buf[idx]
@@ -180,7 +172,6 @@ class GlobalBuffer:
                 b_steps.append(steps)
                 b_seq_len.append(seq_len)
                 b_hidden.append(hidden)
-                b_comm_mask.append(comm_mask)
                 r_t.append(r_t_value)
 
             # importance sampling weight
@@ -195,7 +186,6 @@ class GlobalBuffer:
                 torch.HalfTensor(b_steps).unsqueeze(1),
                 torch.LongTensor(b_seq_len),
                 torch.from_numpy(np.concatenate(b_hidden)),
-                torch.from_numpy(np.stack(b_comm_mask)),
 
                 idxes,
                 torch.from_numpy(weights).unsqueeze(1),

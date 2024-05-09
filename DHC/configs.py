@@ -37,7 +37,7 @@ learning_starts = 50000
 target_network_update_freq = 1000
 save_path = str(MODEL_FILE)
 max_episode_length = 128 if not DEBUG_MODE else 2
-seq_len = 16
+seq_len = 1
 load_model = None
 
 actor_update_steps = 400

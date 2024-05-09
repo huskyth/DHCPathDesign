@@ -177,20 +177,17 @@ class Network(nn.Module):
         self.hidden = None
 
     @autocast()
-    def forward(self, obs, steps, hidden, comm_mask):
+    def forward(self, obs, steps, hidden):
         # comm_mask shape: batch_size x seq_len x max_num_agents x max_num_agents
         max_steps = obs.size(1)
-        num_agents = comm_mask.size(2)
-
-        assert comm_mask.size(2) == configs.max_num_agents
-
-        obs = obs.transpose(1, 2)
+        assert max_steps == 1
+        obs = obs.squeeze(1)
 
         obs = obs.contiguous().view(-1, *self.input_shape)
 
         latent = self.obs_encoder(obs)
 
-        latent = latent.view(configs.batch_size * num_agents, max_steps, self.latent_dim).transpose(0, 1)
+        hidden = self.recurrent(latent, hidden)
 
         hidden_buffer = []
         for i in range(max_steps):
