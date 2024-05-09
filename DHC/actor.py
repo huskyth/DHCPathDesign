@@ -54,7 +54,7 @@ class Actor:
             else:
                 if done:
                     data = local_buffer.finish()
-                    print(f"done~~~ {self.id}")
+                    print(f"done~~~ {self.id}, rewards = {rewards}")
 
                 else:
                     _, q_val, hidden = self.model.step(torch.from_numpy(next_obs.astype(np.float32)))

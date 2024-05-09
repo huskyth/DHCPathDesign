@@ -7,9 +7,9 @@ communication = False
 map_length = 50
 num_agents = 1
 obs_radius = 4
-reward_fn = dict(move=-0.5,
+reward_fn = dict(move=-1,
                  stay_on_goal=1,
-                 stay_off_goal=-0.5,
+                 stay_off_goal=-1,
                  collision=-1,
                  finish=3)
 from pathlib import Path
@@ -36,7 +36,7 @@ batch_size = 1024 if not DEBUG_MODE else 2
 learning_starts = 50000
 target_network_update_freq = 1000
 save_path = str(MODEL_FILE)
-max_episode_length = 256 if not DEBUG_MODE else 2
+max_episode_length = 32 if not DEBUG_MODE else 2
 seq_len = 1
 load_model = None
 

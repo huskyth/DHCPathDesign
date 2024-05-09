@@ -104,7 +104,8 @@ class GlobalBuffer:
     def random_sample(self, batch_size):
         ret = np.zeros(batch_size, dtype=np.int32)
         for i in range(batch_size):
-            selected = np.random.randint(0, self.ptr)
+            # TODO://check ptr
+            selected = np.random.randint(0, 1 if self.ptr == 0 else self.ptr)
             ret[i] = np.random.randint(0, self.size_buf[selected]) + selected * self.local_buffer_capacity
         return ret
 
