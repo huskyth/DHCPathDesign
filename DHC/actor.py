@@ -38,8 +38,7 @@ class Actor:
         logger = 0
         while True:
             episode_length += 1
-            actions, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(obs.astype(np.float32)),
-                                                                torch.from_numpy(pos.astype(np.float32)))
+            actions, q_val, hidden = self.model.step(torch.from_numpy(obs.astype(np.float32)))
             if random.random() < self.epsilon:
                 # Note: only one agent do random action in order to keep the environment stable
                 actions[0] = np.random.randint(0, 5)

@@ -82,7 +82,6 @@ class LocalBuffer:
         self.act_buf = np.zeros(capacity, dtype=np.uint8)
         self.rew_buf = np.zeros(capacity, dtype=np.float16)
         self.hid_buf = np.zeros((capacity, num_agents, hidden_dim), dtype=np.float16)
-        self.comm_mask_buf = np.zeros((capacity + 1, num_agents, num_agents), dtype=bool)
         self.q_buf = np.zeros((capacity + 1, action_dim), dtype=np.float32)
 
         self.capacity = capacity
@@ -94,8 +93,7 @@ class LocalBuffer:
         return self.size
 
     def add(self, q_val: np.ndarray, action: int, reward: float, next_obs: np.ndarray,
-            hidden: np.ndarray,
-            comm_mask: np.ndarray):
+            hidden: np.ndarray):
         assert self.size < self.capacity
 
         self.act_buf[self.size] = action
@@ -103,18 +101,16 @@ class LocalBuffer:
         self.obs_buf[self.size + 1] = next_obs
         self.q_buf[self.size] = q_val
         self.hid_buf[self.size] = hidden
-        self.comm_mask_buf[self.size] = comm_mask
 
         self.size += 1
 
-    def finish(self, last_q_val=None, last_comm_mask=None):
+    def finish(self, last_q_val=None):
         # last q value is None if done
         if last_q_val is None:
             done = True
         else:
             done = False
             self.q_buf[self.size] = last_q_val
-            self.comm_mask_buf[self.size] = last_comm_mask
 
         self.obs_buf = self.obs_buf[:self.size + 1]
         self.pre_obs_buf[1:self.size + 1] = copy.deepcopy(self.obs_buf[:self.size])
@@ -123,7 +119,6 @@ class LocalBuffer:
         self.rew_buf = self.rew_buf[:self.size]
         self.hid_buf = self.hid_buf[:self.size]
         self.q_buf = self.q_buf[:self.size + 1]
-        self.comm_mask_buf = self.comm_mask_buf[:self.size + 1]
 
         # caculate td errors for prioritized experience replay
         td_errors = np.zeros(self.capacity, dtype=np.float32)
@@ -140,5 +135,5 @@ class LocalBuffer:
         return_value = (self.rew_buf * 0.99 ** np.arange(0, self.size)).sum()
 
         return self.actor_id, self.num_agents, self.map_len, self.obs_buf, self.act_buf, \
-            self.rew_buf, self.hid_buf, td_errors, done, self.size, self.comm_mask_buf, \
+            self.rew_buf, self.hid_buf, td_errors, done, self.size, None, \
             return_value, self.pre_obs_buf

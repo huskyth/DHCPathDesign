@@ -157,9 +157,7 @@ class Network(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     @torch.no_grad()
-    def step(self, obs, pos):
-        num_agents = obs.size(0)
-
+    def step(self, obs):
         latent = self.obs_encoder(obs)
 
         if self.hidden is None:
@@ -167,32 +165,13 @@ class Network(nn.Module):
         else:
             self.hidden = self.recurrent(latent, self.hidden)
 
-        # from num_agents x hidden_dim to 1 x num_agents x hidden_dim
-        self.hidden = self.hidden.unsqueeze(0)
-
-        # masks for communication block
-        agents_pos = pos
-        pos_mat = (agents_pos.unsqueeze(1) - agents_pos.unsqueeze(0)).abs()
-        dist_mat = (pos_mat[:, :, 0] ** 2 + pos_mat[:, :, 1] ** 2).sqrt()
-        # mask out agents that out of range of FOV
-        in_obs_mask = (pos_mat <= configs.obs_radius).all(2)
-        # mask out agents that are far away
-        _, ranking = dist_mat.topk(min(self.max_comm_agents, num_agents), dim=1, largest=False)
-        dist_mask = torch.zeros((num_agents, num_agents), dtype=torch.bool)
-        dist_mask.scatter_(1, ranking, True)
-
-        comm_mask = torch.bitwise_and(in_obs_mask, dist_mask)
-
-        self.hidden = self.comm(self.hidden, comm_mask)
-        self.hidden = self.hidden.squeeze(0)
-
         adv_val = self.adv(self.hidden)
         state_val = self.state(self.hidden)
 
         q_val = state_val + adv_val - adv_val.mean(1, keepdim=True)
 
         actions = torch.argmax(q_val, 1).tolist()
-        return actions, q_val.numpy(), self.hidden.numpy(), comm_mask.numpy()
+        return actions, q_val.numpy(), self.hidden.numpy()
 
     def reset(self):
         self.hidden = None
