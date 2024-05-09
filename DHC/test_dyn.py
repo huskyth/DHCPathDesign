@@ -19,12 +19,9 @@ def test_model(model_name):
     '''
     test model in 'models' file with model number
     '''
-    network = Network()
-    network.eval()
-    network.to(device)
     weight_file = os.path.join(configs.save_path, model_name)
     state_dict = model_load(weight_file, device)
-    network.load_state_dict(state_dict['model_state'])
+    network = state_dict
     network.eval()
     network.share_memory()
 
@@ -62,12 +59,8 @@ def make_animation(model_name, steps: int = 1000):
                           [255, 165, 0],  # orange
                           [0, 250, 154]])  # green
 
-    network = Network()
-    network.eval()
-    network.to(device)
     weight_file = os.path.join(configs.save_path, model_name)
-    state_dict = model_load(weight_file, device)
-    network.load_state_dict(state_dict['model_state'])
+    network = model_load(weight_file, device)
 
     env = Environment()
 
@@ -98,8 +91,7 @@ def make_animation(model_name, steps: int = 1000):
             text = plt.text(goal_y, goal_x, i, color='black', ha='center', va='center')
             imgs[-1].append(text)
 
-        actions, _, _, _ = network.step(torch.from_numpy(obs.astype(np.float32)).to(device),
-                                        torch.from_numpy(pos.astype(np.float32)).to(device))
+        actions, _, _ = network.step(torch.from_numpy(obs.astype(np.float32)).to(device))
         (obs, pos), _, done, _ = env.step(actions)
 
     if done and env.steps < steps:

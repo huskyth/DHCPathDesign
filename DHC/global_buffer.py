@@ -102,7 +102,11 @@ class GlobalBuffer:
             self.ptr = (self.ptr + 1) % self.capacity
 
     def random_sample(self, batch_size):
-        return np.random.choice(range(self.size), batch_size)
+        ret = np.zeros(batch_size, dtype=np.int32)
+        for i in range(batch_size):
+            selected = np.random.randint(0, self.ptr)
+            ret[i] = np.random.randint(0, self.size_buf[selected]) + selected * self.local_buffer_capacity
+        return ret
 
     def sample_batch(self, batch_size: int) -> Tuple:
         b_obs, b_action, b_reward, b_done, b_steps = [], [], [], [], []

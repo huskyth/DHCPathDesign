@@ -1,16 +1,16 @@
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 communication = False
 ############################################################
 ####################    environment     ####################
 ############################################################
 map_length = 50
-num_agents = 4
+num_agents = 1
 obs_radius = 4
-reward_fn = dict(move=-0.075,
-                 stay_on_goal=0,
-                 stay_off_goal=-0.075,
-                 collision=-0.5,
+reward_fn = dict(move=-0.5,
+                 stay_on_goal=1,
+                 stay_off_goal=-0.5,
+                 collision=-1,
                  finish=3)
 from pathlib import Path
 import os
@@ -32,11 +32,11 @@ log_interval = 10
 training_times = 60000
 save_interval = 2000
 gamma = 0.99
-batch_size = 256 if not DEBUG_MODE else 2
+batch_size = 1024 if not DEBUG_MODE else 2
 learning_starts = 50000
 target_network_update_freq = 1000
 save_path = str(MODEL_FILE)
-max_episode_length = 128 if not DEBUG_MODE else 2
+max_episode_length = 256 if not DEBUG_MODE else 2
 seq_len = 1
 load_model = None
 
@@ -79,4 +79,3 @@ num_test_cases = 200
 # map length, number of agents, density
 test_env_settings = ((40, 4, 0.3), (40, 8, 0.3), (40, 16, 0.3), (40, 32, 0.3), (40, 64, 0.3),
                      (80, 4, 0.3), (80, 8, 0.3), (80, 16, 0.3), (80, 32, 0.3), (80, 64, 0.3))
-
