@@ -91,7 +91,7 @@ class LocalBuffer:
         self.size = 0
 
         self.obs_buf[0] = init_obs
-        self.position_buf = init_position
+        self.position_buf[0] = init_position
 
     def __len__(self):
         return self.size

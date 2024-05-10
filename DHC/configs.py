@@ -1,11 +1,11 @@
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 communication = False
 ############################################################
 ####################    environment     ####################
 ############################################################
 map_length = 50
-num_agents = 1
+num_agents = 4
 obs_radius = 4
 reward_fn = dict(move=-1,
                  stay_on_goal=1,

@@ -7,6 +7,7 @@ import numpy as np
 import ray
 
 from DHC.actor import Actor
+from DHC.dyn_environment import Environment
 from DHC.learner import Learner
 from DHC.utils.tensor_board_tool import MySummary
 from global_buffer import GlobalBuffer
@@ -33,8 +34,11 @@ def epsilon():
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray_init()
     buffer = GlobalBuffer.remote()
-    my_summary = MySummary.remote(use_wandb=True)
-    learner = Learner.remote(buffer=buffer, summary=my_summary)
+    my_summary = MySummary.remote(use_wandb=False)
+
+    temp = Environment()
+    temp = np.pad(temp.map, temp.obs_radius, 'constant', constant_values=0)
+    learner = Learner.remote(buffer=buffer, summary=my_summary, map=temp)
     time.sleep(1)
     actors = [Actor.remote(i, 0.4 ** (1 + (i / (num_actors + epsilon())) * 7),
                            learner, buffer, my_summary) for i in range(num_actors)]

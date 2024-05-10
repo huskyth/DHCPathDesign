@@ -32,7 +32,7 @@ class GlobalBuffer:
         self.obs_buf = np.zeros(
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=bool)
         self.pos_buf = np.zeros(
-            ((local_buffer_capacity + 1) * episode_capacity, 2), dtype=int)
+            ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, 2), dtype=int)
         self.pre_obs_buf = np.zeros(
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=bool)
         self.act_buf = np.zeros((local_buffer_capacity * episode_capacity), dtype=np.uint8)
@@ -94,7 +94,7 @@ class GlobalBuffer:
             self.counter += data[9]
 
             self.obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[3]
-            self.pos_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :] = data[12]
+            self.pos_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1], :] = data[13]
             self.pre_obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[12]
             self.act_buf[start_idx:start_idx + data[9]] = data[4]
             self.rew_buf[start_idx:start_idx + data[9]] = data[5]

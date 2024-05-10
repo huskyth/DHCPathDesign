@@ -19,14 +19,16 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 
+from DHC.utils.visual_tool import show_two_map
+
 
 @ray.remote(num_cpus=1, num_gpus=1)
 class Learner:
-    def __init__(self, buffer: GlobalBuffer, summary):
+    def __init__(self, buffer: GlobalBuffer, summary, map):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
         self.icm = ICM().to(device=self.device)
-
+        self.map = map
         self.state = None
         self.weight_file = None
 
@@ -137,6 +139,25 @@ class Learner:
 
         self.scheduler.step()
 
+    def draw(self, obs, pos):
+        batch, seq_len, agent_num, _, _, _ = obs.size()
+        for b in range(batch):
+            pos_item = pos[b]
+            for l in range(seq_len):
+                pos_item_per_seq = pos_item[l][0]
+                obs_item = obs[b][l][0]
+                agent_map = obs_item[0]
+                obstacle_map = obs_item[1]
+                top, down, left, right = obs_item[2:]
+                show_two_map(self.map, agent_map, pos_item_per_seq)
+                show_two_map(self.map, obstacle_map, pos_item_per_seq)
+                show_two_map(self.map, top, pos_item_per_seq)
+                show_two_map(self.map, down, pos_item_per_seq)
+                show_two_map(self.map, left, pos_item_per_seq)
+                show_two_map(self.map, right, pos_item_per_seq)
+
+        pass
+
     def train(self):
         scaler = GradScaler()
         epoch = 0
@@ -151,6 +172,7 @@ class Learner:
                 td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
                                              idxes, pre_obs, epoch, r_t)
 
+                self.draw(b_obs, pos)
                 # if i % 3 == 0:
                 #     loss += self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
                 #                                   b_comm_mask, \

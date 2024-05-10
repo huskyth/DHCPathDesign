@@ -48,7 +48,7 @@ class Actor:
                                              x_name=f"Actor {self.id}'s episode count")
             if self.id == logger:
                 self.env.render(actions)
-            local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden)
+            local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, position=next_pos)
             if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos
             else:
@@ -59,7 +59,7 @@ class Actor:
                 else:
                     _, q_val, hidden = self.model.step(torch.from_numpy(next_obs.astype(np.float32)))
                     data = local_buffer.finish(q_val[0])
-                return_value = data[-2]
+                return_value = data[-3]
                 self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
                                                  x_name=f"Actor {self.id}'s episode count")
                 self.global_buffer.add.remote(data)
@@ -95,5 +95,5 @@ class Actor:
     def reset(self):
         self.model.reset()
         obs, pos = self.env.reset()
-        local_buffer = LocalBuffer(self.id, self.env.num_agents, self.env.map_size[0], obs, pos)
+        local_buffer = LocalBuffer(self.id, self.env.num_agents, self.env.map_size[0], obs, init_position=pos)
         return obs, pos, local_buffer
