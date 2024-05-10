@@ -65,11 +65,13 @@ class SumTree:
 
 class LocalBuffer:
     __slots__ = ('actor_id', 'map_len', 'num_agents', 'obs_buf', 'act_buf', 'pre_obs_buf', 'rew_buf', 'hid_buf',
-                 'comm_mask_buf', 'q_buf', 'capacity', 'size', 'done')
+                 'comm_mask_buf', 'q_buf', 'capacity', 'size', 'done', 'position_buf')
 
     def __init__(self, actor_id: int, num_agents: int, map_len: int, init_obs: np.ndarray,
                  capacity: int = configs.max_episode_length,
-                 obs_shape=configs.obs_shape, hidden_dim=configs.hidden_dim, action_dim=configs.action_dim):
+                 obs_shape=configs.obs_shape, hidden_dim=configs.hidden_dim, action_dim=configs.action_dim,
+                 init_position=None,
+                 ):
         """
         buffer for each episode
         """
@@ -78,6 +80,7 @@ class LocalBuffer:
         self.map_len = map_len
 
         self.obs_buf = np.zeros((capacity + 1, num_agents, *obs_shape), dtype=bool)
+        self.position_buf = np.zeros((capacity + 1, num_agents, 2), dtype=int)
         self.pre_obs_buf = np.zeros((capacity + 1, num_agents, *obs_shape), dtype=bool)
         self.act_buf = np.zeros(capacity, dtype=np.uint8)
         self.rew_buf = np.zeros(capacity, dtype=np.float16)
@@ -88,17 +91,19 @@ class LocalBuffer:
         self.size = 0
 
         self.obs_buf[0] = init_obs
+        self.position_buf = init_position
 
     def __len__(self):
         return self.size
 
     def add(self, q_val: np.ndarray, action: int, reward: float, next_obs: np.ndarray,
-            hidden: np.ndarray):
+            hidden: np.ndarray, position):
         assert self.size < self.capacity
 
         self.act_buf[self.size] = action
         self.rew_buf[self.size] = reward
         self.obs_buf[self.size + 1] = next_obs
+        self.position_buf[self.size + 1] = position
         self.q_buf[self.size] = q_val
         self.hid_buf[self.size] = hidden
 
@@ -136,4 +141,4 @@ class LocalBuffer:
 
         return self.actor_id, self.num_agents, self.map_len, self.obs_buf, self.act_buf, \
             self.rew_buf, self.hid_buf, td_errors, done, self.size, None, \
-            return_value, self.pre_obs_buf
+            return_value, self.pre_obs_buf, self.position_buf

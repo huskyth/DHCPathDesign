@@ -95,5 +95,5 @@ class Actor:
     def reset(self):
         self.model.reset()
         obs, pos = self.env.reset()
-        local_buffer = LocalBuffer(self.id, self.env.num_agents, self.env.map_size[0], obs)
+        local_buffer = LocalBuffer(self.id, self.env.num_agents, self.env.map_size[0], obs, pos)
         return obs, pos, local_buffer

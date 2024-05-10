@@ -31,6 +31,8 @@ class GlobalBuffer:
 
         self.obs_buf = np.zeros(
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=bool)
+        self.pos_buf = np.zeros(
+            ((local_buffer_capacity + 1) * episode_capacity, 2), dtype=int)
         self.pre_obs_buf = np.zeros(
             ((local_buffer_capacity + 1) * episode_capacity, configs.max_num_agents, *configs.obs_shape), dtype=bool)
         self.act_buf = np.zeros((local_buffer_capacity * episode_capacity), dtype=np.uint8)
@@ -73,7 +75,7 @@ class GlobalBuffer:
     def add(self, data: Tuple):
         '''
         data: actor_id 0, num_agents 1, map_len 2, obs_buf 3, act_buf 4, rew_buf 5,
-         hid_buf 6, td_errors 7, done 8, size 9, return value 10, pre_obs_buf 11,
+         hid_buf 6, td_errors 7, done 8, size 9, return value 10, pre_obs_buf 11, position_buf 12
         '''
         if data[0] >= 12:
             stat_key = (data[1], data[2])
@@ -92,6 +94,7 @@ class GlobalBuffer:
             self.counter += data[9]
 
             self.obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[3]
+            self.pos_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :] = data[12]
             self.pre_obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[12]
             self.act_buf[start_idx:start_idx + data[9]] = data[4]
             self.rew_buf[start_idx:start_idx + data[9]] = data[5]
@@ -114,6 +117,7 @@ class GlobalBuffer:
         b_hidden = []
         b_pre_obs = []
         r_t = []
+        pos_list = []
         with self.lock:
             idxes = self.random_sample(batch_size)
             global_idxes = idxes // self.local_buffer_capacity
@@ -130,17 +134,23 @@ class GlobalBuffer:
                 if local_idx < configs.seq_len - 1:
                     obs = self.obs_buf[global_idx * (self.local_buffer_capacity + 1):
                                        idx + global_idx + 1 + steps]
+                    pos = self.pos_buf[global_idx * (self.local_buffer_capacity + 1):
+                                       idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[global_idx * (self.local_buffer_capacity + 1):
                                                idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
                 elif local_idx == configs.seq_len - 1:
                     obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:
                                        idx + global_idx + 1 + steps]
+                    pos = self.pos_buf[idx + global_idx + 1 - configs.seq_len:
+                                       idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[idx + global_idx + 1 - configs.seq_len:
                                                idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
                 else:
                     obs = self.obs_buf[idx + global_idx + 1 - configs.seq_len:
+                                       idx + global_idx + 1 + steps]
+                    pos = self.pos_buf[idx + global_idx + 1 - configs.seq_len:
                                        idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[idx + global_idx + 1 - configs.seq_len:
                                                idx + global_idx + 1 + steps]
@@ -171,6 +181,7 @@ class GlobalBuffer:
                 b_steps.append(steps)
                 b_hidden.append(hidden)
                 r_t.append(r_t_value)
+                pos_list.append(pos)
 
             data = (
                 torch.from_numpy(np.stack(b_obs).astype(np.float16)),
@@ -184,6 +195,7 @@ class GlobalBuffer:
                 self.ptr,
                 torch.from_numpy(np.stack(b_pre_obs).astype(np.float16)),
                 torch.HalfTensor(r_t).unsqueeze(1),
+                pos_list
             )
             return data
 

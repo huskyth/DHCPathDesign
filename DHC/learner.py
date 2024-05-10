@@ -114,7 +114,7 @@ class Learner:
         data_id = ray.get(self.buffer.get_data.remote())
         data = ray.get(data_id)
         b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, old_ptr, pre_obs, r_t = data
+            idxes, old_ptr, pre_obs, r_t, pos = data
 
         b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
             b_reward.to(self.device)
@@ -123,7 +123,7 @@ class Learner:
         pre_obs = pre_obs.to(self.device)
         r_t = r_t.to(self.device)
         return b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, old_ptr, pre_obs, r_t
+            idxes, old_ptr, pre_obs, r_t, pos
 
     def param_update(self, loss, scaler):
         self.optimizer.zero_grad()
@@ -146,7 +146,7 @@ class Learner:
             for i in range(1, step_length):
 
                 b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-                    idxes, old_ptr, pre_obs, r_t = self.get_data()
+                    idxes, old_ptr, pre_obs, r_t, pos = self.get_data()
 
                 td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
                                              idxes, pre_obs, epoch, r_t)
