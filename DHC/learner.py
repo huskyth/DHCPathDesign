@@ -116,7 +116,7 @@ class Learner:
         data_id = ray.get(self.buffer.get_data.remote())
         data = ray.get(data_id)
         b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, old_ptr, pre_obs, r_t, pos = data
+            idxes, old_ptr, pre_obs, r_t, pos, goal = data
 
         b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
             b_reward.to(self.device)
@@ -125,7 +125,7 @@ class Learner:
         pre_obs = pre_obs.to(self.device)
         r_t = r_t.to(self.device)
         return b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, old_ptr, pre_obs, r_t, pos
+            idxes, old_ptr, pre_obs, r_t, pos, goal
 
     def param_update(self, loss, scaler):
         self.optimizer.zero_grad()
@@ -139,7 +139,7 @@ class Learner:
 
         self.scheduler.step()
 
-    def draw(self, obs, pos):
+    def draw(self, obs, pos, action, goal, reward):
         batch, seq_len, agent_num, _, _, _ = obs.size()
         for b in range(batch):
             pos_item = pos[b]
@@ -155,6 +155,7 @@ class Learner:
                 show_two_map(self.map, down, pos_item_per_seq)
                 show_two_map(self.map, left, pos_item_per_seq)
                 show_two_map(self.map, right, pos_item_per_seq)
+            pass
 
         pass
 
@@ -167,12 +168,12 @@ class Learner:
             for i in range(1, step_length):
 
                 b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-                    idxes, old_ptr, pre_obs, r_t, pos = self.get_data()
+                    idxes, old_ptr, pre_obs, r_t, pos, goal = self.get_data()
 
                 td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
                                              idxes, pre_obs, epoch, r_t)
 
-                self.draw(b_obs, pos)
+                self.draw(b_obs, pos,b_action, goal, b_reward)
                 # if i % 3 == 0:
                 #     loss += self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
                 #                                   b_comm_mask, \

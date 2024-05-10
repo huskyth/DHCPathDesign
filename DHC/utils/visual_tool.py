@@ -1,10 +1,10 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-color_map = np.array([[255, 255, 255, 255],  # white
-                      [190, 190, 190, 255],  # gray
-                      [0, 191, 255, 255],  # blue
+color_map = np.array([[255, 0, 0, 255],  # red
                       [255, 165, 0, 255],  # orange
+                      [0, 191, 255, 255],  # blue
+                      [190, 190, 190, 255],  # gray
                       [0, 250, 154, 255],  # green
                       [0, 0, 0, 255]],
                      dtype=np.uint8)
@@ -12,16 +12,16 @@ color_map = np.array([[255, 255, 255, 255],  # white
 
 def show_two_map(first_frame, second_frame, position):
     # TODO:// position must be left top xy
-    second_frame = np.array(second_frame.numpy(), dtype=np.int)
+    second_frame = np.array(second_frame.detach().cpu().numpy(), dtype=int)
     first_frame, second_frame = color_map[first_frame], color_map[second_frame]
     x_length, y_length, dim = second_frame.shape
     start_x, start_y = position[0], position[1]
-    zero_top = np.zeros(first_frame.shape, dtype=np.uint8)
+    zero_top = color_map[np.ones(first_frame.shape[:2], dtype=np.uint8) * 4]
     zero_top[start_x:start_x + x_length, start_y:start_y + y_length] = second_frame
 
     fig, ax = plt.subplots()
     ax.imshow(first_frame, animated=True)
-    ax.imshow(zero_top, animated=True, alpha=0.5)
+    ax.imshow(zero_top, animated=True, alpha=0.8)
     plt.show()
     plt.pause(0.5)
 

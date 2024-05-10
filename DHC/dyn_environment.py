@@ -1,6 +1,7 @@
 import copy
 from typing import List
 import matplotlib.pyplot as plt
+import numpy as np
 
 import configs
 from construct_map.static_map import StaticObstacle
@@ -514,7 +515,7 @@ class Environment:
             obs[i, 1] = obstacle_map[x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
             obs[i, 2:] = self.heuri_map[i, :, x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
 
-        return obs, np.copy(self.agents_pos)
+        return obs, np.copy(self.agents_pos), np.copy(self.goals_pos)
 
     def render(self, action):
         if not hasattr(self, 'fig'):

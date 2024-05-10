@@ -32,7 +32,7 @@ class Actor:
         self.epoch = 0
 
     def run(self):
-        obs, pos, local_buffer = self.reset()
+        obs, pos, local_buffer, goal = self.reset()
         episode_length = 0
         time_ = 0
         logger = 3
@@ -42,13 +42,13 @@ class Actor:
             if random.random() < self.epsilon:
                 # Note: only one agent do random action in order to keep the environment stable
                 actions[0] = np.random.randint(0, 5)
-            (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
+            (next_obs, next_pos, _), rewards, done, _ = self.env.step(actions)
             print(f"reward is {rewards}")
             self.my_summary.add_float.remote(x=self.epoch + 1, y=np.mean(rewards).item(), title="Reward Value",
                                              x_name=f"Actor {self.id}'s episode count")
             if self.id == logger:
                 self.env.render(actions)
-            local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, position=next_pos)
+            local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, position=next_pos, goal=goal)
             if done is False and self.env.steps < self.max_episode_length:
                 obs, pos = next_obs, next_pos
             else:
@@ -59,11 +59,11 @@ class Actor:
                 else:
                     _, q_val, hidden = self.model.step(torch.from_numpy(next_obs.astype(np.float32)))
                     data = local_buffer.finish(q_val[0])
-                return_value = data[-3]
+                return_value = data[-4]
                 self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
                                                  x_name=f"Actor {self.id}'s episode count")
                 self.global_buffer.add.remote(data)
-                obs, pos, local_buffer = self.reset()
+                obs, pos, local_buffer, goal = self.reset()
                 self.epoch += 1
                 time_ += 1
                 print(f"id: {self.id}, episode_length = {episode_length}, is Done {done} times = {time_}")
@@ -94,6 +94,6 @@ class Actor:
 
     def reset(self):
         self.model.reset()
-        obs, pos = self.env.reset()
+        obs, pos, goal = self.env.reset()
         local_buffer = LocalBuffer(self.id, self.env.num_agents, self.env.map_size[0], obs, init_position=pos)
-        return obs, pos, local_buffer
+        return obs, pos, local_buffer, goal
