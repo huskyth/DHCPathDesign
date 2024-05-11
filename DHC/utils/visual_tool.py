@@ -12,12 +12,18 @@ BACKGROUND_AREA = [255, 255, 255, 0]
 
 FOREGROUND_INDEX = 3
 FOREGROUND_AREA = [255, 165, 0, 255]
+
+AGENT_INDEX = 4
+AGENT_AREA = [0, 191, 255, 255]
+
+GOAL_INDEX = 5
+GOAL_AREA = [255, 0, 0, 255]
 color_map = np.array([BLANK_AREA,
                       ENTRY_AREA,
                       BACKGROUND_AREA,
                       FOREGROUND_AREA,
-                      [255, 255, 255, 255],
-                      [0, 0, 0, 255]],
+                      AGENT_AREA, GOAL_AREA
+                      ],
                      dtype=np.uint8)
 
 
@@ -33,8 +39,8 @@ def show_two_map(first_frame, second_frame, origin_position, origin_goal,
     zero_top = color_map[np.ones(first_frame.shape[:2], dtype=np.uint8) * BACKGROUND_INDEX]
     zero_top[start_x:start_x + x_length, start_y:start_y + y_length] = second_frame
 
-    first_frame[start_x + obs_radius, start_y + obs_radius] = color_map[0]
-    first_frame[goal_x + obs_radius, goal_y + obs_radius] = color_map[0]
+    zero_top[start_x + obs_radius, start_y + obs_radius] = color_map[AGENT_INDEX]
+    zero_top[goal_x + obs_radius, goal_y + obs_radius] = color_map[GOAL_INDEX]
 
     fig, ax = plt.subplots()
     ax.imshow(first_frame, animated=True, alpha=0.5)

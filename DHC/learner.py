@@ -143,19 +143,24 @@ class Learner:
         batch, seq_len, agent_num, _, _, _ = obs.size()
         for b in range(batch):
             pos_item = pos[b]
+            goal_item = goal[b]
             for l in range(seq_len):
                 pos_item_per_seq = pos_item[l][0]
+                goal_item_per_seq = goal_item[l][0]
                 obs_item = obs[b][l][0]
                 agent_map = obs_item[0]
                 obstacle_map = obs_item[1]
                 top, down, left, right = obs_item[2:]
-                show_two_map(self.map, agent_map, pos_item_per_seq)
-                show_two_map(self.map, obstacle_map, pos_item_per_seq)
-                show_two_map(self.map, top, pos_item_per_seq)
-                show_two_map(self.map, down, pos_item_per_seq)
-                show_two_map(self.map, left, pos_item_per_seq)
-                show_two_map(self.map, right, pos_item_per_seq)
-            pass
+                prefix = f"batch_{b}_seq_{l}_"
+                show_map = [(agent_map, 'agent_map.png'), (obstacle_map, "obstacle_map.png"),
+                            (top, 'top.png'), (down, "down.png"),
+                            (left, 'left.png'), (right, "right.png"), ]
+                for i in range(len(show_map)):
+                    map_data, name = show_map[i]
+                    name = prefix + name
+                    show_two_map(self.map, agent_map, pos_item_per_seq, goal_item_per_seq, is_show=False, name=name)
+
+            assert False
 
         pass
 
@@ -173,7 +178,7 @@ class Learner:
                 td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
                                              idxes, pre_obs, epoch, r_t)
 
-                self.draw(b_obs, pos,b_action, goal, b_reward)
+                self.draw(b_obs, pos, b_action, goal, b_reward)
                 # if i % 3 == 0:
                 #     loss += self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
                 #                                   b_comm_mask, \
