@@ -48,6 +48,7 @@ class GlobalBuffer:
             dtype=bool)
 
         self.background_thread = None
+        self.is_big_than_max_capacity = False
 
     def __len__(self):
         return self.size
@@ -59,7 +60,7 @@ class GlobalBuffer:
     def prepare_data(self):
         while True:
             if len(self.batched_data) <= 4:
-                data = self.sample_batch(configs.batch_size)
+                data = self.random_sample(configs.batch_size)
                 data_id = ray.put(data)
                 self.batched_data.append(data_id)
             else:
@@ -68,7 +69,7 @@ class GlobalBuffer:
     def get_data(self):
         if len(self.batched_data) == 0:
             print('no prepared data')
-            data = self.sample_batch(configs.batch_size)
+            data = self.random_sample(configs.batch_size)
             data_id = ray.put(data)
             return data_id
         else:
@@ -87,8 +88,6 @@ class GlobalBuffer:
                     self.stat_dict[stat_key].pop(0)
 
         with self.lock:
-            idxes = np.arange(self.ptr * self.local_buffer_capacity,
-                              (self.ptr + 1) * self.local_buffer_capacity)
             start_idx = self.ptr * self.local_buffer_capacity
             # update buffer size
             self.size -= self.size_buf[self.ptr].item()
@@ -104,16 +103,43 @@ class GlobalBuffer:
             self.hid_buf[start_idx:start_idx + data[9], :data[1]] = data[6]
             self.done_buf[self.ptr] = data[8]
             self.size_buf[self.ptr] = data[9]
-
+            if self.ptr + 1 >= self.capacity:
+                self.is_big_than_max_capacity = True
             self.ptr = (self.ptr + 1) % self.capacity
 
     def random_sample(self, batch_size):
-        ret = np.zeros(batch_size, dtype=np.int32)
-        for i in range(batch_size):
-            # TODO://check ptr
-            selected = np.random.randint(0, 1 if self.ptr == 0 else self.ptr)
-            ret[i] = np.random.randint(0, self.size_buf[selected]) + selected * self.local_buffer_capacity
-        return ret
+        b_obs, b_action, b_reward, b_done, b_hidden, pos_list, goal_list = [], [], [], [], [], [], []
+        with self.lock:
+            for i in range(batch_size):
+                # TODO://check ptr
+                episode_index = np.random.randint(0, self.capacity if self.is_big_than_max_capacity else self.ptr)
+                step_index = np.random.randint(0, self.size_buf[episode_index])
+                step_location = episode_index * (1 + self.local_buffer_capacity) + step_index
+                small_step_location = episode_index * self.local_buffer_capacity + step_index
+
+                s_t = self.obs_buf[step_location].unsqueeze(0)
+                a_t = self.act_buf[small_step_location]
+                b_action.append(a_t)
+                r_t = self.rew_buf[small_step_location]
+                b_reward.append(r_t)
+                s_next_t = self.rew_buf[step_location + 1].unsqueeze(0)
+                b_obs.append(torch.stack((s_t, s_next_t)))
+
+                is_done = self.done_buf[episode_index] and step_index + 1 == self.size_buf[episode_index]
+                b_done.append(is_done)
+                hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16) \
+                    if step_index == 0 else self.hid_buf[small_step_location]
+                b_hidden.append(hidden)
+            data = (
+                torch.from_numpy(np.stack(b_obs).astype(np.float16)),
+                torch.LongTensor(b_action).unsqueeze(1),
+                torch.HalfTensor(b_reward).unsqueeze(1),
+                torch.HalfTensor(b_done).unsqueeze(1),
+                torch.from_numpy(np.concatenate(b_hidden)),
+                pos_list,
+                goal_list,
+            )
+        return data
 
     def sample_batch(self, batch_size: int) -> Tuple:
         b_obs, b_action, b_reward, b_done, b_steps = [], [], [], [], []
@@ -141,7 +167,7 @@ class GlobalBuffer:
                     pos = self.pos_buf[global_idx * (self.local_buffer_capacity + 1):
                                        idx + global_idx + 1 + steps]
                     goal = self.goal_buf[global_idx * (self.local_buffer_capacity + 1):
-                                       idx + global_idx + 1 + steps]
+                                         idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[global_idx * (self.local_buffer_capacity + 1):
                                                idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
@@ -151,7 +177,7 @@ class GlobalBuffer:
                     pos = self.pos_buf[idx + global_idx + 1 - configs.seq_len:
                                        idx + global_idx + 1 + steps]
                     goal = self.goal_buf[idx + global_idx + 1 - configs.seq_len:
-                                       idx + global_idx + 1 + steps]
+                                         idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[idx + global_idx + 1 - configs.seq_len:
                                                idx + global_idx + 1 + steps]
                     hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16)
@@ -161,7 +187,7 @@ class GlobalBuffer:
                     pos = self.pos_buf[idx + global_idx + 1 - configs.seq_len:
                                        idx + global_idx + 1 + steps]
                     goal = self.goal_buf[idx + global_idx + 1 - configs.seq_len:
-                                       idx + global_idx + 1 + steps]
+                                         idx + global_idx + 1 + steps]
                     pre_obs = self.pre_obs_buf[idx + global_idx + 1 - configs.seq_len:
                                                idx + global_idx + 1 + steps]
                     hidden = self.hid_buf[idx - configs.seq_len]

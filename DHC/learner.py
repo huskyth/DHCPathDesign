@@ -64,8 +64,9 @@ class Learner:
     def get_weights(self):
         return self.weights_id
 
-    def q_loss(self, b_obs, b_action, b_reward, b_done, b_steps, b_hidden,
-               idxes, pre_obs, epoch, r_t):
+    def q_loss(self, b_obs, b_action, b_reward, b_done, b_hidden, epoch):
+        batch_size = b_obs.shape[0]
+        b_steps = torch.ones((batch_size, 1))
         # TODO://
         b_q = self.model(b_obs[:, :-configs.forward_steps], b_hidden).gather(1, b_action)
         with torch.no_grad():
@@ -115,17 +116,13 @@ class Learner:
     def get_data(self):
         data_id = ray.get(self.buffer.get_data.remote())
         data = ray.get(data_id)
-        b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, old_ptr, pre_obs, r_t, pos, goal = data
+        b_obs, b_action, b_reward, b_done, b_hidden, pos, goal = data
 
         b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
             b_reward.to(self.device)
-        b_done, b_steps = b_done.to(self.device), b_steps.to(self.device)
+        b_done = b_done.to(self.device),
         b_hidden = b_hidden.to(self.device)
-        pre_obs = pre_obs.to(self.device)
-        r_t = r_t.to(self.device)
-        return b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-            idxes, old_ptr, pre_obs, r_t, pos, goal
+        return b_obs, b_action, b_reward, b_done, b_hidden, pos, goal
 
     def param_update(self, loss, scaler):
         self.optimizer.zero_grad()
@@ -144,6 +141,8 @@ class Learner:
         for b in range(batch):
             pos_item = pos[b]
             goal_item = goal[b]
+            with open("action.txt", 'w') as f:
+                f.write(str(action[0]))
             for l in range(seq_len):
                 pos_item_per_seq = pos_item[l][0]
                 goal_item_per_seq = goal_item[l][0]
@@ -172,11 +171,9 @@ class Learner:
             step_length = 10000
             for i in range(1, step_length):
 
-                b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-                    idxes, old_ptr, pre_obs, r_t, pos, goal = self.get_data()
+                b_obs, b_action, b_reward, b_done, b_hidden, pos, goal = self.get_data()
 
-                td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_hidden, \
-                                             idxes, pre_obs, epoch, r_t)
+                td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_hidden, epoch)
 
                 self.draw(b_obs, pos, b_action, goal, b_reward)
                 # if i % 3 == 0:

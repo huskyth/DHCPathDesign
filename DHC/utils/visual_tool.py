@@ -43,11 +43,13 @@ def show_two_map(first_frame, second_frame, origin_position, origin_goal,
     zero_top[goal_x + obs_radius, goal_y + obs_radius] = color_map[GOAL_INDEX]
 
     fig, ax = plt.subplots()
-    ax.imshow(first_frame, animated=True, alpha=0.5)
-    ax.imshow(zero_top, animated=True)
-    plt.savefig(name)
-    plt.show()
-    plt.pause(0.5)
+    if is_show:
+        ax.imshow(first_frame, animated=True, alpha=0.5)
+        ax.imshow(zero_top, animated=True)
+        plt.show()
+        plt.pause(0.5)
+    if is_save:
+        plt.savefig(name)
 
 
 if __name__ == '__main__':
