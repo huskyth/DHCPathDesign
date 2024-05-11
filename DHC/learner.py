@@ -120,7 +120,7 @@ class Learner:
 
         b_obs, b_action, b_reward = b_obs.to(self.device), b_action.to(self.device), \
             b_reward.to(self.device)
-        b_done = b_done.to(self.device),
+        b_done = b_done.to(self.device)
         b_hidden = b_hidden.to(self.device)
         return b_obs, b_action, b_reward, b_done, b_hidden, pos, goal
 

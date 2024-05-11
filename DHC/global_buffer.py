@@ -117,13 +117,13 @@ class GlobalBuffer:
                 step_location = episode_index * (1 + self.local_buffer_capacity) + step_index
                 small_step_location = episode_index * self.local_buffer_capacity + step_index
 
-                s_t = self.obs_buf[step_location].unsqueeze(0)
+                s_t = self.obs_buf[step_location][None]
                 a_t = self.act_buf[small_step_location]
                 b_action.append(a_t)
                 r_t = self.rew_buf[small_step_location]
                 b_reward.append(r_t)
-                s_next_t = self.rew_buf[step_location + 1].unsqueeze(0)
-                b_obs.append(torch.stack((s_t, s_next_t)))
+                s_next_t = self.obs_buf[step_location + 1][None]
+                b_obs.append(np.concatenate((s_t, s_next_t)))
 
                 is_done = self.done_buf[episode_index] and step_index + 1 == self.size_buf[episode_index]
                 b_done.append(is_done)
