@@ -1,6 +1,6 @@
 import torch
 
-TEST_MODEL_NAME = '2024-05-09-20-15999.pth'
+TEST_MODEL_NAME = '2024-05-11-19-27998.pth'
 
 
 def model_save(model, path):

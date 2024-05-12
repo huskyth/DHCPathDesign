@@ -125,6 +125,7 @@ class Environment:
                  obs_radius: int = configs.obs_radius, reward_fn: dict = configs.reward_fn, fix_density=None,
                  curriculum=False, init_env_settings_set=configs.init_env_settings):
         self.heuri_map = None
+        self.dist_map = None
         self.distance = 1
 
         self.fig = None
@@ -252,7 +253,7 @@ class Environment:
                     dist_map[i, x, y + 1] = dist + 1
                     if right not in open_list:
                         open_list.append(right)
-
+        self.dist_map = dist_map
         self.heuri_map = np.zeros((self.num_agents, 4, *self.map_size), dtype=bool)
 
         for x in range(self.map_size[0]):
@@ -344,6 +345,7 @@ class Environment:
 
         rewards = []
         next_pos = np.copy(self.agents_pos)
+        origin_pos = np.copy(self.agents_pos) + configs.obs_radius
 
         # remove unmoving agent id
         for agent_id in checking_list.copy():
@@ -471,7 +473,19 @@ class Environment:
                                      dtype=bool)
         self.last_actions[np.arange(self.num_agents), np.array(actions)] = 1
 
-        return self.observe(), rewards, done, info
+        c_a = actions[0] - 1
+        obs = self.observe()
+        #
+        if done:
+            rewards = [1]
+        else:
+            if c_a == -1:
+                rewards = [-2]
+            else:
+                temp = origin_pos[0]
+                rewards = [1] if self.heuri_map[0][c_a][temp[0]][temp[1]].item() else [-2]
+
+        return obs, rewards, done, info
 
     def observe(self):
         """
@@ -512,7 +526,7 @@ class Environment:
 
             obs[i, 0] = agent_map[x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
             obs[i, 0, self.obs_radius, self.obs_radius] = 0
-            obs[i, 1] = obstacle_map[x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
+            obs[i, 1] = obstacle_map[x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1].copy()
             obs[i, 2:] = self.heuri_map[i, :, x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
 
         return obs, np.copy(self.agents_pos), np.copy(self.goals_pos)

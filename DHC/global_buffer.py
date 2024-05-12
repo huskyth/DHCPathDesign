@@ -78,7 +78,7 @@ class GlobalBuffer:
     def add(self, data: Tuple):
         '''
         data: actor_id 0, num_agents 1, map_len 2, obs_buf 3, act_buf 4, rew_buf 5,
-         hid_buf 6, td_errors 7, done 8, size 9, return value 10, pre_obs_buf 12, position_buf 13, goal_buf 14
+         hid_buf 6, td_errors 7, done 8, size 9, return value 10, pre_obs_buf 11, position_buf 12, goal_buf 13
         '''
         if data[0] >= 12:
             stat_key = (data[1], data[2])
@@ -95,9 +95,9 @@ class GlobalBuffer:
             self.counter += data[9]
 
             self.obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[3]
-            self.pos_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1], :] = data[13]
-            self.goal_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1], :] = data[14]
-            self.pre_obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[12]
+            self.pos_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1], :] = data[12]
+            self.goal_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1], :] = data[13]
+            self.pre_obs_buf[start_idx + self.ptr:start_idx + self.ptr + data[9] + 1, :data[1]] = data[11]
             self.act_buf[start_idx:start_idx + data[9]] = data[4]
             self.rew_buf[start_idx:start_idx + data[9]] = data[5]
             self.hid_buf[start_idx:start_idx + data[9], :data[1]] = data[6]
@@ -128,8 +128,9 @@ class GlobalBuffer:
                 is_done = self.done_buf[episode_index] and step_index + 1 == self.size_buf[episode_index]
                 b_done.append(is_done)
                 hidden = np.zeros((configs.max_num_agents, configs.hidden_dim), dtype=np.float16) \
-                    if step_index == 0 else self.hid_buf[small_step_location]
-                b_hidden.append(hidden)
+                    if step_index == 0 else self.hid_buf[small_step_location - 1]
+                next_hidden = self.hid_buf[small_step_location]
+                b_hidden.append(np.concatenate((hidden[None], next_hidden[None]))[None])
             data = (
                 torch.from_numpy(np.stack(b_obs).astype(np.float16)),
                 torch.LongTensor(b_action).unsqueeze(1),

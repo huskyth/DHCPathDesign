@@ -44,8 +44,6 @@ class Actor:
                 actions[0] = np.random.randint(0, 5)
             (next_obs, next_pos, _), rewards, done, _ = self.env.step(actions)
             print(f"reward is {rewards}")
-            self.my_summary.add_float.remote(x=self.epoch + 1, y=np.mean(rewards).item(), title="Reward Value",
-                                             x_name=f"Actor {self.id}'s episode count")
             if self.id == logger:
                 self.env.render(actions)
             local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, position=next_pos, goal=goal)
@@ -59,8 +57,11 @@ class Actor:
                 else:
                     _, q_val, hidden = self.model.step(torch.from_numpy(next_obs.astype(np.float32)))
                     data = local_buffer.finish(q_val[0])
-                return_value = data[-4]
+                return_value = data[-5]
+                average_return_value = data[-1]
                 self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
+                                                 x_name=f"Actor {self.id}'s episode count")
+                self.my_summary.add_float.remote(x=self.epoch + 1, y=average_return_value, title="Average Return Value",
                                                  x_name=f"Actor {self.id}'s episode count")
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer, goal = self.reset()
@@ -95,5 +96,6 @@ class Actor:
     def reset(self):
         self.model.reset()
         obs, pos, goal = self.env.reset()
-        local_buffer = LocalBuffer(self.id, self.env.num_agents, self.env.map_size[0], obs, init_position=pos)
+        local_buffer = LocalBuffer(self.id, self.env.num_agents, self.env.map_size[0], obs, init_position=pos,
+                                   init_goal=goal)
         return obs, pos, local_buffer, goal

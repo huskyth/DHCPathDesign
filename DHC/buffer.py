@@ -70,7 +70,7 @@ class LocalBuffer:
     def __init__(self, actor_id: int, num_agents: int, map_len: int, init_obs: np.ndarray,
                  capacity: int = configs.max_episode_length,
                  obs_shape=configs.obs_shape, hidden_dim=configs.hidden_dim, action_dim=configs.action_dim,
-                 init_position=None,
+                 init_position=None,init_goal=None
                  ):
         """
         buffer for each episode
@@ -93,6 +93,7 @@ class LocalBuffer:
 
         self.obs_buf[0] = init_obs
         self.position_buf[0] = init_position
+        self.goal_buf[0] = init_goal
 
     def __len__(self):
         return self.size
@@ -126,6 +127,8 @@ class LocalBuffer:
         self.rew_buf = self.rew_buf[:self.size]
         self.hid_buf = self.hid_buf[:self.size]
         self.q_buf = self.q_buf[:self.size + 1]
+        self.position_buf = self.position_buf[:self.size + 1]
+        self.goal_buf = self.goal_buf[:self.size + 1]
 
         # caculate td errors for prioritized experience replay
         td_errors = np.zeros(self.capacity, dtype=np.float32)
@@ -140,7 +143,8 @@ class LocalBuffer:
         td_errors[:self.size] = np.abs(reward - q_val).clip(1e-4)
 
         return_value = (self.rew_buf * 0.99 ** np.arange(0, self.size)).sum()
+        average_return_value = self.rew_buf.mean()
 
         return self.actor_id, self.num_agents, self.map_len, self.obs_buf, self.act_buf, \
-            self.rew_buf, self.hid_buf, td_errors, done, self.size, None, \
-            return_value, self.pre_obs_buf, self.position_buf, self.goal_buf
+            self.rew_buf, self.hid_buf, td_errors, done, self.size, \
+            return_value, self.pre_obs_buf, self.position_buf, self.goal_buf, average_return_value

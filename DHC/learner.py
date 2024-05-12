@@ -32,7 +32,7 @@ class Learner:
         self.state = None
         self.weight_file = None
 
-        self.optimizer = Adam(list(self.model.parameters()) + list(self.icm.parameters()), lr=1e-3)
+        self.optimizer = Adam(list(self.model.parameters()), lr=1e-3)
         self.avg_reward = 0
         self.avg_finish_cases = 0
         self.avg_step = 0
@@ -66,11 +66,11 @@ class Learner:
 
     def q_loss(self, b_obs, b_action, b_reward, b_done, b_hidden, epoch):
         batch_size = b_obs.shape[0]
-        b_steps = torch.ones((batch_size, 1))
+        b_steps = torch.ones((batch_size, 1)).to(self.device)
         # TODO://
-        b_q = self.model(b_obs[:, :-configs.forward_steps], b_hidden).gather(1, b_action)
+        b_q = self.model(b_obs[:, :-configs.forward_steps], b_hidden[:, 0].squeeze(1)).gather(1, b_action)
         with torch.no_grad():
-            b_q_ = (1 - b_done) * self.tar_model(b_obs[:, -configs.forward_steps:], b_hidden).max(1, keepdim=True)[0]
+            b_q_ = (1 - b_done) * self.tar_model(b_obs[:, -configs.forward_steps:], b_hidden[:, 1].squeeze(1)).max(1, keepdim=True)[0]
         td_error = (b_q - (b_reward + (0.99 ** b_steps) * b_q_))
         loss = self.huber_loss(td_error).mean()
 
@@ -174,14 +174,6 @@ class Learner:
                 b_obs, b_action, b_reward, b_done, b_hidden, pos, goal = self.get_data()
 
                 td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_hidden, epoch)
-
-                self.draw(b_obs, pos, b_action, goal, b_reward)
-                # if i % 3 == 0:
-                #     loss += self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
-                #                                   b_comm_mask, \
-                #                                   idxes, weights, pre_obs, epoch, r_t)
-
-                priorities = td_error.detach().squeeze().abs().clamp(1e-4).cpu().numpy()
 
                 self.loss += loss.item()
 

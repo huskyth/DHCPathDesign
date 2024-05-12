@@ -67,7 +67,7 @@ def make_animation(model_name, steps: int = 1000):
     fig = plt.figure()
 
     done = False
-    obs, pos = env.observe()
+    obs, pos, _ = env.observe()
 
     imgs = []
     while not done and env.steps < steps:
@@ -92,7 +92,7 @@ def make_animation(model_name, steps: int = 1000):
             imgs[-1].append(text)
 
         actions, _, _ = network.step(torch.from_numpy(obs.astype(np.float32)).to(device))
-        (obs, pos), _, done, _ = env.step(actions)
+        (obs, pos, _), _, done, _ = env.step(actions)
 
     if done and env.steps < steps:
         map = np.copy(env.map)

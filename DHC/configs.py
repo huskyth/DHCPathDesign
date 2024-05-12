@@ -1,15 +1,15 @@
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 communication = False
 ############################################################
 ####################    environment     ####################
 ############################################################
 map_length = 50
-num_agents = 4
-obs_radius = 4
-reward_fn = dict(move=-1,
+num_agents = 1
+obs_radius = 0
+reward_fn = dict(move=-0.5,
                  stay_on_goal=1,
-                 stay_off_goal=-1,
+                 stay_off_goal=-0.5,
                  collision=-1,
                  finish=3)
 from pathlib import Path
@@ -27,20 +27,20 @@ action_dim = 5
 ####################         DQN        ####################
 ############################################################
 
-num_actors = 4 if not DEBUG_MODE else 1
+num_actors = 8 if not DEBUG_MODE else 1
 log_interval = 10
 training_times = 60000
 save_interval = 2000
 gamma = 0.99
 batch_size = 1024 if not DEBUG_MODE else 2
 learning_starts = 50000
-target_network_update_freq = 1000
+target_network_update_freq = 2000
 save_path = str(MODEL_FILE)
-max_episode_length = 32 if not DEBUG_MODE else 2
+max_episode_length = 100 if not DEBUG_MODE else 2
 seq_len = 1
 load_model = None
 
-actor_update_steps = 400
+actor_update_steps = 1500
 actor_random_generate_acceleration = 4000
 
 # gradient norm clipping
@@ -65,7 +65,7 @@ pass_rate = 0.9
 
 # dqn network setting
 cnn_channel = 128
-hidden_dim = 256
+hidden_dim = 6
 
 # communication
 max_comm_agents = 3  # including agent itself, means one can at most communicate with (max_comm_agents-1) agents

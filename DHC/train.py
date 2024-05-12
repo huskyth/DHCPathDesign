@@ -34,7 +34,7 @@ def epsilon():
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray_init()
     buffer = GlobalBuffer.remote()
-    my_summary = MySummary.remote(use_wandb=False)
+    my_summary = MySummary.remote(use_wandb=True)
 
     temp = Environment()
     temp = np.pad(temp.map, temp.obs_radius, 'constant', constant_values=0)

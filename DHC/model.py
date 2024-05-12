@@ -125,24 +125,16 @@ class Network(nn.Module):
         super().__init__()
 
         self.input_shape = input_shape
-        self.latent_dim = 16 * 7 * 7
         self.hidden_dim = hidden_dim
         self.max_comm_agents = max_comm_agents
 
         self.obs_encoder = nn.Sequential(
-            nn.Conv2d(self.input_shape[0], cnn_channel, 3, 1),
-            nn.ReLU(True),
-            ResBlock(cnn_channel),
-            ResBlock(cnn_channel),
-            ResBlock(cnn_channel),
-            nn.Conv2d(cnn_channel, 16, 1, 1),
-            nn.ReLU(True),
             nn.Flatten(),
         )
 
-        self.recurrent = nn.GRUCell(self.latent_dim, self.hidden_dim)
-
         self.comm = CommBlock(hidden_dim)
+
+        self.attention = MultiHeadAttention(self.hidden_dim, self.hidden_dim, 2)
 
         # dueling q structure
         self.adv = nn.Linear(hidden_dim, 5)
@@ -160,18 +152,10 @@ class Network(nn.Module):
     def step(self, obs):
         latent = self.obs_encoder(obs)
 
-        if self.hidden is None:
-            self.hidden = self.recurrent(latent)
-        else:
-            self.hidden = self.recurrent(latent, self.hidden)
-
-        adv_val = self.adv(self.hidden)
-        state_val = self.state(self.hidden)
-
-        q_val = state_val + adv_val - adv_val.mean(1, keepdim=True)
+        q_val = self.adv(latent)
 
         actions = torch.argmax(q_val, 1).tolist()
-        return actions, q_val.numpy(), self.hidden.numpy()
+        return actions, q_val.numpy(), None
 
     def reset(self):
         self.hidden = None
@@ -186,14 +170,9 @@ class Network(nn.Module):
 
         obs = obs.contiguous().view(-1, *self.input_shape)
 
-        latent = self.obs_encoder(obs.float())
+        latent = self.obs_encoder(obs)
 
-        hidden = self.recurrent(latent, hidden.float())
-        adv_val = self.adv(hidden).view(batch_size, agent_number, -1)
-        state_val = self.state(hidden).view(batch_size, agent_number, -1)
-
-        q_val = state_val + adv_val - adv_val.mean(-1, keepdim=True)
-
+        q_val = self.adv(latent).view(batch_size, agent_number, -1)
         return q_val[:, 0, :]
 
 
