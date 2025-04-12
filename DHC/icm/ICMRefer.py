@@ -18,7 +18,7 @@ import torch.nn.functional as F
 import torch.autograd as autograd
 import pdb
 
-from DHC.icm.icm_model import ICM
+from icm.icm_model import ICM
 from atari_wrappers import make_atari, wrap_deepmind, LazyFrames
 from IPython.display import clear_output
 from tensorboardX import SummaryWriter

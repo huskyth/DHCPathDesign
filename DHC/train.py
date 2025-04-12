@@ -6,9 +6,9 @@ import torch
 import numpy as np
 import ray
 
-from DHC.actor import Actor
-from DHC.learner import Learner
-from DHC.utils.tensor_board_tool import MySummary
+from actor import Actor
+from learner import Learner
+from utils.tensor_board_tool import MySummary
 from global_buffer import GlobalBuffer
 import configs
 from configs import DEBUG_MODE
@@ -32,10 +32,10 @@ def epsilon():
 
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     ray_init()
-    buffer = GlobalBuffer.remote()
     my_summary = MySummary.remote(use_wandb=True)
+    buffer = GlobalBuffer.remote(writer=my_summary)
     model_path = configs.MODEL_FILE / '2024-05-08-21-73993.pth'
-    learner = Learner.remote(buffer=buffer, summary=my_summary, resume=model_path)
+    learner = Learner.remote(buffer=buffer, summary=my_summary, resume=None)
     time.sleep(1)
     actors = [Actor.remote(i, 0.2 ** (1 + (i / (num_actors + epsilon())) * 7),
                            learner, buffer, my_summary) for i in range(num_actors)]

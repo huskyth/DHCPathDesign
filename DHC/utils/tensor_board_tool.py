@@ -36,7 +36,6 @@ class MySummary:
             self.wandb_logger = wandb.init(project="PathDesign", dir=WANDB_PATH)
 
     def add_float(self, x, y, title, x_name):
-        self.writer.add_scalar(title, y, x)
         if self.use_wandb:
             self.wandb_logger.log({title: y})
 

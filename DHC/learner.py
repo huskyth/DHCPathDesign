@@ -7,13 +7,13 @@ import torch
 import ray
 from torch.optim.lr_scheduler import MultiStepLR
 
-from DHC import configs
-from DHC.global_buffer import GlobalBuffer
-from DHC.icm.icm_model import ICM
-from DHC.model import Network
+import configs
+from global_buffer import GlobalBuffer
+# from icm.icm_model import ICM
+from model import Network
 from torch.optim import Adam
 
-from DHC.utils.model_save_load_tool import model_save, model_load
+from utils.model_save_load_tool import model_save, model_load
 from torch.cuda.amp import GradScaler
 import torch.nn as nn
 
@@ -25,7 +25,7 @@ class Learner:
     def __init__(self, buffer: GlobalBuffer, summary, resume):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
-        self.icm = ICM().to(device=self.device)
+        # self.icm = ICM().to(device=self.device)
         self.resume = resume
 
         self.state = None

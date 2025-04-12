@@ -6,12 +6,12 @@ DEBUG_MODE = False
 ####################    environment     ####################
 ############################################################
 num_agents = 4
-obs_radius = 4
+obs_radius = 0
 reward_fn = dict(move=-0.5,
                  stay_on_goal=1,
                  stay_off_goal=-0.5,
                  collision=-1,
-                 finish=3)
+                 finish=300)
 obs_shape = (6, 2 * obs_radius + 1, 2 * obs_radius + 1)
 action_dim = 5
 

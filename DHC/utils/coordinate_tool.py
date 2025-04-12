@@ -1,4 +1,4 @@
-from DHC.configs import PROJECT_ROOT
+from configs import PROJECT_ROOT
 
 
 def get_plane_coordinate(plane_path=str(PROJECT_ROOT / "construct_map/coordinate.txt")):

@@ -130,14 +130,16 @@ class Network(nn.Module):
         self.max_comm_agents = max_comm_agents
 
         self.obs_encoder = nn.Sequential(
-            nn.Conv2d(self.input_shape[0], cnn_channel, 3, 1),
-            nn.ReLU(True),
-            ResBlock(cnn_channel),
-            ResBlock(cnn_channel),
-            ResBlock(cnn_channel),
-            nn.Conv2d(cnn_channel, 16, 1, 1),
+            # nn.Conv2d(self.input_shape[0], cnn_channel, 3, 1),
+            # nn.ReLU(True),
+            # ResBlock(cnn_channel),
+            # nn.Conv2d(cnn_channel, 16, 1, 1),
+            # nn.ReLU(True),
+            # nn.Flatten(),
+            nn.Conv2d(self.input_shape[0], cnn_channel, 1, 1),
             nn.ReLU(True),
             nn.Flatten(),
+            nn.Linear(128, self.latent_dim)
         )
 
         self.recurrent = nn.GRUCell(self.latent_dim, self.hidden_dim)

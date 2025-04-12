@@ -3,7 +3,7 @@ import pandas as pd
 import re
 import math
 
-from DHC.configs import PROJECT_ROOT
+from configs import PROJECT_ROOT
 
 
 class DynamicPedestrian:

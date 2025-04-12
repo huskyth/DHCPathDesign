@@ -13,7 +13,7 @@ class GlobalBuffer:
     def __init__(self, episode_capacity=configs.episode_capacity,
                  local_buffer_capacity=configs.max_episode_length,
                  init_env_settings=configs.init_env_settings,
-                 alpha=configs.prioritized_replay_alpha, beta=configs.prioritized_replay_beta):
+                 alpha=configs.prioritized_replay_alpha, beta=configs.prioritized_replay_beta, writer=None):
 
         self.capacity = episode_capacity
         self.local_buffer_capacity = local_buffer_capacity
@@ -46,6 +46,9 @@ class GlobalBuffer:
             dtype=bool)
 
         self.background_thread = None
+        self.done_times = 0
+        self.all_times = 0
+        self.my_summary = writer
 
     def __len__(self):
         return self.size
@@ -71,6 +74,11 @@ class GlobalBuffer:
             return data_id
         else:
             return self.batched_data.pop(0)
+    def is_done(self, is_done):
+        self.done_times += is_done
+        self.all_times += 1
+        self.my_summary.add_float.remote(x=None, y=self.done_times / self.all_times, title="success rate",
+                                         x_name=None)
 
     def add(self, data: Tuple):
         '''

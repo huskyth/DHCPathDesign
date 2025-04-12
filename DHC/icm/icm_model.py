@@ -3,8 +3,8 @@ import torch.nn.functional as F
 import torch
 
 from DHC import configs
-from DHC.configs import cnn_channel, num_agents, hidden_dim, batch_size, obs_shape, seq_len, forward_steps, obs_radius
-from DHC.model import ResBlock, CommBlock
+from configs import cnn_channel, num_agents, hidden_dim, batch_size, obs_shape, seq_len, forward_steps, obs_radius
+from model import ResBlock, CommBlock
 from torch.cuda.amp import autocast
 
 

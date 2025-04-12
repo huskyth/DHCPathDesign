@@ -4,12 +4,12 @@ import numpy as np
 import ray
 import torch
 
-from DHC import configs
-from DHC.buffer import LocalBuffer
-from DHC.configs import DEBUG_MODE, action_dim, num_agents
-from DHC.global_buffer import GlobalBuffer
-from DHC.learner import Learner
-from DHC.model import Network
+import configs
+from buffer import LocalBuffer
+from configs import DEBUG_MODE, action_dim, num_agents
+from global_buffer import GlobalBuffer
+from learner import Learner
+from model import Network
 from dyn_environment import Environment
 
 
@@ -53,11 +53,13 @@ class Actor:
                 if done:
                     data = local_buffer.finish()
                     print(f"done~~~ {self.id}")
+                    self.global_buffer.is_done.remote(1)
 
                 else:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))
                     data = local_buffer.finish(q_val[0], comm_mask)
+                    self.global_buffer.is_done.remote(0)
                 return_value = data[-2]
                 self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
                                                  x_name=f"Actor {self.id}'s episode count")

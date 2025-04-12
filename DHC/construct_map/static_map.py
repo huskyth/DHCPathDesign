@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-from DHC.configs import PROJECT_ROOT
+from configs import PROJECT_ROOT
 
 
 class StaticObstacle():
