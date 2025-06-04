@@ -37,7 +37,7 @@ def main(num_actors=configs.num_actors, log_interval=configs.log_interval):
     model_path = configs.MODEL_FILE / '2024-05-08-21-73993.pth'
     learner = Learner.remote(buffer=buffer, summary=my_summary, resume=None)
     time.sleep(1)
-    actors = [Actor.remote(i, 0.2 ** (1 + (i / (num_actors + epsilon())) * 7),
+    actors = [Actor.remote(i, 0.8 ** (1 + (i / (num_actors + epsilon())) * 7),
                            learner, buffer, my_summary) for i in range(num_actors)]
 
     for actor in actors:

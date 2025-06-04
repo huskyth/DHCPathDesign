@@ -125,21 +125,21 @@ class Network(nn.Module):
         super().__init__()
 
         self.input_shape = input_shape
-        self.latent_dim = 16 * 7 * 7
+        self.latent_dim = 128 * 5 * 5
         self.hidden_dim = hidden_dim
         self.max_comm_agents = max_comm_agents
 
         self.obs_encoder = nn.Sequential(
-            # nn.Conv2d(self.input_shape[0], cnn_channel, 3, 1),
-            # nn.ReLU(True),
-            # ResBlock(cnn_channel),
-            # nn.Conv2d(cnn_channel, 16, 1, 1),
-            # nn.ReLU(True),
-            # nn.Flatten(),
-            nn.Conv2d(self.input_shape[0], cnn_channel, 1, 1),
+            nn.Conv2d(self.input_shape[0], cnn_channel, 3, 1,1),
+            nn.ReLU(True),
+            ResBlock(cnn_channel),
+            nn.Conv2d(cnn_channel, 128, 3, 2, 1),
             nn.ReLU(True),
             nn.Flatten(),
-            nn.Linear(128, self.latent_dim)
+            # nn.Conv2d(self.input_shape[0], cnn_channel, 1, 1),
+            # nn.ReLU(True),
+            # nn.Flatten(),
+            # nn.Linear(128, self.latent_dim)
         )
 
         self.recurrent = nn.GRUCell(self.latent_dim, self.hidden_dim)
@@ -160,6 +160,7 @@ class Network(nn.Module):
 
     @torch.no_grad()
     def step(self, obs, pos):
+
         num_agents = obs.size(0)
 
         latent = self.obs_encoder(obs)

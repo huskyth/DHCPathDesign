@@ -160,7 +160,7 @@ class Learner:
         epoch = 0
         while not ray.get(self.buffer.check_done.remote()):
             epoch += 1
-            step_length = 10000
+            step_length = 100
             for i in range(1, step_length):
 
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \

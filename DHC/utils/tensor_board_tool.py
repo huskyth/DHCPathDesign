@@ -45,5 +45,6 @@ class MySummary:
 
 if __name__ == '__main__':
     test = MySummary()
+
     for i in range(100):
         test.add_float(x=i, y=i ** 2, title="y=f(x)", x_name="x")

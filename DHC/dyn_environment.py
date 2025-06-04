@@ -314,7 +314,7 @@ class Environment:
 
         rewards = []
         next_pos = np.copy(self.agents_pos)
-
+        origin_pos = np.copy(self.agents_pos) + configs.obs_radius
         # remove unmoving agent id
         for agent_id in checking_list.copy():
             if actions[agent_id] == 0:
@@ -423,7 +423,24 @@ class Environment:
             rewards = [self.reward_fn['finish'] for _ in range(self.num_agents)]
         else:
             done = False
+            at = 0
+            for i in range(self.num_agents):
+                if np.array_equal(self.agents_pos[i], self.goals_pos[i]):
+                    at += 1
 
+            rewards = [at / self.num_agents for _ in range(self.num_agents)]
+
+        c_a = actions[0] - 1
+        obs = self.observe()
+        #
+        if done:
+            rewards = [1]
+        else:
+            if c_a == -1:
+                rewards = [-2]
+            else:
+                temp = origin_pos[0]
+                rewards = [1] if self.heuri_map[0][c_a][temp[0]][temp[1]].item() else [-2]
 
         info = {'step': self.steps - 1}
 
@@ -466,7 +483,7 @@ class Environment:
         self.map = self.static_obs.static_map
         self.map[np.where(self.map >= 1)] = 1
 
-        obs = np.zeros((self.num_agents, 6, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1), dtype=bool)
+        obs = np.zeros((self.num_agents, 11, 2 * self.obs_radius + 1, 2 * self.obs_radius + 1), dtype=bool)
 
         # 0 represents obstacle to match 0 padding in CNN 地图上下左右都进行填充
         obstacle_map = np.pad(self.map, self.obs_radius, 'constant', constant_values=0)  # 对边缘进行填充
@@ -481,8 +498,8 @@ class Environment:
             obs[i, 0] = agent_map[x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
             obs[i, 0, self.obs_radius, self.obs_radius] = 0
             obs[i, 1] = obstacle_map[x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
-            obs[i, 2:] = self.heuri_map[i, :, x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
-
+            obs[i, 2:6] = self.heuri_map[i, :, x:x + 2 * self.obs_radius + 1, y:y + 2 * self.obs_radius + 1]
+            obs[i, 6:] = self.last_actions[i]
         return obs, np.copy(self.agents_pos)
 
     def render(self, action):

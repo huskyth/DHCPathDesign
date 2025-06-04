@@ -37,6 +37,12 @@ class Actor:
         time_ = 0
         logger = 0
         while True:
+            self.epsilon /= (time_ // 500 + 1)
+            if self.id == 0:
+                self.my_summary.add_float.remote(x=self.epoch + 1, y=self.epsilon, title="self.epsilon",
+                                                 x_name=f"self.epsilon")
+                self.my_summary.add_float.remote(x=self.epoch + 1, y=time_, title="self.time_",
+                                                 x_name=f"self.time_")
             episode_length += 1
             actions, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(obs.astype(np.float32)),
                                                                 torch.from_numpy(pos.astype(np.float32)))
