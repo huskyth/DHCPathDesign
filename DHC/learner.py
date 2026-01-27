@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 
 import configs
 from global_buffer import GlobalBuffer
-# from icm.icm_model import ICM
+from icm.icm_model import ICM
 from model import Network
 from torch.optim import Adam
 
@@ -25,13 +25,17 @@ class Learner:
     def __init__(self, buffer: GlobalBuffer, summary, resume):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
-        # self.icm = ICM().to(device=self.device)
+        self.icm = ICM().to(device=self.device)
         self.resume = resume
 
         self.state = None
         self.weight_file = None
 
         self.optimizer = Adam(self.model.parameters(), lr=1e-4)
+        self.icm_optimizer = Adam(self.icm.parameters(), lr=1e-4)
+        self.scheduler = MultiStepLR(self.optimizer, milestones=[200000, 400000], gamma=0.5)
+        self.icm_scheduler = MultiStepLR(self.icm_optimizer, milestones=[200000, 400000], gamma=0.5)
+
         self.avg_reward = 0
         self.avg_finish_cases = 0
         self.avg_step = 0
@@ -39,7 +43,6 @@ class Learner:
         self.tar_model = deepcopy(self.model)
         self.load()
 
-        self.scheduler = MultiStepLR(self.optimizer, milestones=[200000, 400000], gamma=0.5)
         self.buffer = buffer
 
         self.done = False
@@ -103,9 +106,7 @@ class Learner:
         forward_loss = F.mse_loss(prediction_s_next, feature_x_next.detach(), reduction='none')
         inverse_prediction_loss = F.cross_entropy(prediction_a_vec, b_action.squeeze(1).detach(), reduction='none')
 
-        total_rewards = forward_loss.mean(-1, keepdim=True).clone()
-        if self.use_extrinsic:
-            total_rewards += r_t
+        e_rewards = forward_loss.mean(-1, keepdim=True)
 
         self.my_summary.add_float.remote(x=epoch, y=forward_loss.mean().item(), title="Forward Loss",
                                          x_name=f"trained epoch")
@@ -114,7 +115,7 @@ class Learner:
                                          x_name=f"trained epoch")
         icm_loss = self.forward_loss_scale * forward_loss.mean() + self.inverse_loss_scale * inverse_prediction_loss.mean()
 
-        return icm_loss
+        return icm_loss, e_rewards
 
     def store_weights(self):
         state_dict = self.model.state_dict()
@@ -143,20 +144,21 @@ class Learner:
         return b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
             idxes, weights, old_ptr, pre_obs, r_t
 
-    def param_update(self, loss, scaler):
-        self.optimizer.zero_grad()
+    def param_update(self, loss, scaler, optimizer, scheduler, model):
+        optimizer.zero_grad()
         scaler.scale(loss).backward()
 
-        scaler.unscale_(self.optimizer)
-        nn.utils.clip_grad_norm_(self.model.parameters(), 40)
+        scaler.unscale_(optimizer)
+        nn.utils.clip_grad_norm_(model.parameters(), 40)
 
-        scaler.step(self.optimizer)
+        scaler.step(optimizer)
         scaler.update()
 
-        self.scheduler.step()
+        scheduler.step()
 
     def train(self):
         scaler = GradScaler()
+        icm_scaler = GradScaler()
         epoch = 0
         while not ray.get(self.buffer.check_done.remote()):
             epoch += 1
@@ -166,20 +168,22 @@ class Learner:
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
                     idxes, weights, old_ptr, pre_obs, r_t = self.get_data()
 
-                td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
+                e_loss, e_reward = self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len,
+                                                         b_hidden,
+                                                         b_comm_mask, \
+                                                         idxes, weights, pre_obs, epoch, r_t)
+
+                td_error, loss = self.q_loss(b_obs, b_action, b_reward + e_reward, b_done, b_steps, b_seq_len, b_hidden,
                                              b_comm_mask, \
                                              idxes, weights, pre_obs, epoch, r_t)
 
-                # if i % 3 == 0:
-                #     loss += self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
-                #                                   b_comm_mask, \
-                #                                   idxes, weights, pre_obs, epoch, r_t)
-
                 priorities = td_error.detach().squeeze().abs().clamp(1e-4).cpu().numpy()
 
-                self.loss += loss.item()
+                self.loss += loss.item() + e_loss.item()
 
-                self.param_update(loss, scaler)
+                self.param_update(e_loss, icm_scaler, self.icm_optimizer, self.icm_scheduler, self.icm)
+
+                self.param_update(loss, scaler, self.optimizer, self.scheduler, self.model)
 
                 if i % 5 == 0:
                     self.store_weights()

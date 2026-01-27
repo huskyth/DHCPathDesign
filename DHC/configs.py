@@ -26,12 +26,12 @@ save_path = str(MODEL_FILE)
 ####################         DQN        ####################
 ############################################################
 
-num_actors = 4 if not DEBUG_MODE else 1
+num_actors = 1 if not DEBUG_MODE else 1
 log_interval = 10
 save_interval = 2000
 gamma = 0.99
-batch_size = 256 if not DEBUG_MODE else 2
-learning_starts = 50000
+batch_size = 32 if not DEBUG_MODE else 2
+learning_starts = 5000
 
 target_network_update_freq = 200
 actor_update_steps = 100

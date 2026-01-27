@@ -32,7 +32,7 @@ class MySummary:
         self.use_wandb = use_wandb
         if use_wandb:
             ticks = str(time.time())
-            wandb.login(key="rdGaOSnlBY0KBDnNdkzja")
+            wandb.login(api_key="rdGaOSnlBY0KBDnNdkzja")
             self.wandb_logger = wandb.init(project="PathDesign", dir=WANDB_PATH)
 
     def add_float(self, x, y, title, x_name):

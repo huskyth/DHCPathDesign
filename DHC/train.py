@@ -27,7 +27,7 @@ def ray_init():
 
 
 def epsilon():
-    return -1 if not DEBUG_MODE else -1 + 1e-5
+    return -1 + 1e-5
 
 
 def main(num_actors=configs.num_actors, log_interval=configs.log_interval):

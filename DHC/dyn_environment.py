@@ -436,11 +436,12 @@ class Environment:
         if done:
             rewards = [1]
         else:
-            if c_a == -1:
-                rewards = [-2]
-            else:
-                temp = origin_pos[0]
-                rewards = [1] if self.heuri_map[0][c_a][temp[0]][temp[1]].item() else [-2]
+            rewards = [0]
+            # if c_a == -1:
+            #     rewards = [-2]
+            # else:
+            #     temp = origin_pos[0]
+            #     rewards = [1] if self.heuri_map[0][c_a][temp[0]][temp[1]].item() else [-2]
 
         info = {'step': self.steps - 1}
 

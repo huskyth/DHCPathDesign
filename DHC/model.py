@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 import configs
 
 
@@ -200,7 +200,7 @@ class Network(nn.Module):
     def reset(self):
         self.hidden = None
 
-    @autocast()
+    @autocast(device_type="cuda")
     def forward(self, obs, steps, hidden, comm_mask):
         # comm_mask shape: batch_size x seq_len x max_num_agents x max_num_agents
         max_steps = obs.size(1)

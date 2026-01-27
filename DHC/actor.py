@@ -36,6 +36,8 @@ class Actor:
         episode_length = 0
         time_ = 0
         logger = 0
+        last = None
+        weight = 0.9
         while True:
             self.epsilon /= (time_ // 500 + 1)
             if self.id == 0:
@@ -67,7 +69,12 @@ class Actor:
                     data = local_buffer.finish(q_val[0], comm_mask)
                     self.global_buffer.is_done.remote(0)
                 return_value = data[-2]
-                self.my_summary.add_float.remote(x=self.epoch + 1, y=return_value, title="Return Value",
+                if last is None:
+                    last = return_value
+                else:
+                    last = last * 0.9 + 0.1 * return_value
+
+                self.my_summary.add_float.remote(x=self.epoch + 1, y=last, title="Smooth Return Value",
                                                  x_name=f"Actor {self.id}'s episode count")
                 self.global_buffer.add.remote(data)
                 obs, pos, local_buffer = self.reset()
