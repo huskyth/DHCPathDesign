@@ -1,7 +1,7 @@
 import os
 import time
 from torch.utils.tensorboard import SummaryWriter
-import wandb
+import swanlab as wandb
 from pathlib import Path
 import ray
 
@@ -32,7 +32,7 @@ class MySummary:
         self.use_wandb = use_wandb
         if use_wandb:
             ticks = str(time.time())
-            wandb.login(key="613f55cae781fb261b18bad5ec25aa65766e6bc8")
+            wandb.login(key="rdGaOSnlBY0KBDnNdkzja")
             self.wandb_logger = wandb.init(project="PathDesign", dir=WANDB_PATH)
 
     def add_float(self, x, y, title, x_name):
