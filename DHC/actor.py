@@ -60,7 +60,7 @@ class Actor:
             else:
                 if done:
                     data = local_buffer.finish()
-                    print(f"done~~~ {self.id}")
+                    print(f"done~~~ id = {self.id}")
                     self.global_buffer.is_done.remote(1)
 
                 else:
@@ -73,7 +73,6 @@ class Actor:
                     last = return_value
                 else:
                     last = last * 0.9 + 0.1 * return_value
-
                 self.my_summary.add_float.remote(x=self.epoch + 1, y=last, title="Smooth Return Value",
                                                  x_name=f"Actor {self.id}'s episode count")
                 self.global_buffer.add.remote(data)

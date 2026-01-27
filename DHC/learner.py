@@ -115,7 +115,7 @@ class Learner:
                                          x_name=f"trained epoch")
         icm_loss = self.forward_loss_scale * forward_loss.mean() + self.inverse_loss_scale * inverse_prediction_loss.mean()
 
-        return icm_loss, e_rewards
+        return icm_loss, e_rewards.detach()
 
     def store_weights(self):
         state_dict = self.model.state_dict()
