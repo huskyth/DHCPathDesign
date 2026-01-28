@@ -28,7 +28,7 @@ save_path = str(MODEL_FILE)
 
 num_actors = 4 if not DEBUG_MODE else 1
 log_interval = 10
-save_interval = 2000
+save_interval = 13
 gamma = 0.99
 batch_size = 32 if not DEBUG_MODE else 2
 learning_starts = 5000
@@ -37,14 +37,14 @@ target_network_update_freq = 200
 actor_update_steps = 100
 actor_random_generate_acceleration = 4000
 
-max_episode_length = 256 if not DEBUG_MODE else 2
+max_episode_length = 128 if not DEBUG_MODE else 2
 seq_len = 1
 
 # n-step forward
 forward_steps = 2
 
 # global buffer
-episode_capacity = 2048
+episode_capacity = 128
 
 # prioritized replay
 prioritized_replay_alpha = 0.6
@@ -59,7 +59,7 @@ pass_rate = 0.9
 
 # dqn network setting
 cnn_channel = 64
-hidden_dim = 256
+hidden_dim = 128
 
 # communication
 max_comm_agents = 0  # including agent itself, means one can at most communicate with (max_comm_agents-1) agents

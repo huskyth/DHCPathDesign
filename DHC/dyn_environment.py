@@ -139,12 +139,11 @@ class Environment:
 
         self.static_obs = StaticObstacle()
         self.map = self.static_obs.static_map
-        self.dynamic_ped = DynamicPedestrian(self.static_obs.rows, self.static_obs.columns)
+        # self.dynamic_ped = DynamicPedestrian(self.static_obs.rows, self.static_obs.columns)
         self.t = 0
 
         partition_list = map_partition(self.map)
         partition_list = [partition for partition in partition_list if len(partition) >= 2]
-
         self.partition_list = partition_list
         self.first_blank_list = partition_list[0]
 
@@ -176,15 +175,14 @@ class Environment:
             self.map_size = map_size
 
         ''''地图设置，根据unity导出的数据构建静态地图'''
-        self.static_obs = StaticObstacle()
+        # self.static_obs = StaticObstacle()
         self.map = self.static_obs.static_map
-        self.dynamic_ped = DynamicPedestrian(self.static_obs.rows, self.static_obs.columns)
+        # self.dynamic_ped = DynamicPedestrian(self.static_obs.rows, self.static_obs.columns)
         self.t = 1
-
         partition_list = map_partition(self.map)
         partition_list = [partition for partition in partition_list if len(partition) >= 2]
 
-        assert self.partition_list == partition_list
+        assert self.partition_list == partition_list, f"self.partition_list is {self.partition_list} \n\n partition_list is {partition_list} \n\n"
 
         self.generate_agent_and_goal()
 
@@ -437,11 +435,11 @@ class Environment:
         #     rewards = [1]
         # else:
         #     rewards = [0]
-            # if c_a == -1:
-            #     rewards = [-2]
-            # else:
-            #     temp = origin_pos[0]
-            #     rewards = [1] if self.heuri_map[0][c_a][temp[0]][temp[1]].item() else [-2]
+        # if c_a == -1:
+        #     rewards = [-2]
+        # else:
+        #     temp = origin_pos[0]
+        #     rewards = [1] if self.heuri_map[0][c_a][temp[0]][temp[1]].item() else [-2]
 
         info = {'step': self.steps - 1}
 
@@ -475,12 +473,12 @@ class Environment:
         if isinstance(self.dyn_map, pd.DataFrame) and self.dyn_map:  # 数据类型判断
             dynamic_ped_map = self.dyn_map
         else:
-            coorlist = self.dynamic_ped.pde_df.iloc[self.t].tolist()
-            dynamic_ped_map = self.dynamic_ped.get_pedcoor(coorlist)
+            # coorlist = self.dynamic_ped.pde_df.iloc[self.t].tolist()
+            # dynamic_ped_map = self.dynamic_ped.get_pedcoor(coorlist)
             self.t = self.t + 1
             # todo 只是测试，之后删掉
-            if self.t >= len(self.dynamic_ped.pde_df):
-                self.t = 0
+            # if self.t >= len(self.dynamic_ped.pde_df):
+            #     self.t = 0
         self.map = self.static_obs.static_map
         self.map[np.where(self.map >= 1)] = 1
 

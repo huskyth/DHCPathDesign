@@ -6,7 +6,7 @@ import torch
 
 import configs
 from buffer import LocalBuffer
-from configs import DEBUG_MODE, action_dim, num_agents
+from configs import DEBUG_MODE, action_dim, num_actors
 from global_buffer import GlobalBuffer
 from learner import Learner
 from model import Network
@@ -19,7 +19,6 @@ class Actor:
         self.id = worker_id
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.model = Network()
-
         self.model.eval()
         self.env = Environment(curriculum=False)
         self.epsilon = epsilon
@@ -30,6 +29,7 @@ class Actor:
 
         self.my_summary = summary
         self.epoch = 0
+        print(f"is = {self.id}, epsilon = {self.epsilon}")
 
     def run(self):
         obs, pos, local_buffer = self.reset()
@@ -52,7 +52,7 @@ class Actor:
                 # Note: only one agent do random action in order to keep the environment stable
                 actions[0] = np.random.randint(0, action_dim)
             (next_obs, next_pos), rewards, done, _ = self.env.step(actions)
-            if self.id == logger:
+            if self.id == num_actors - 1:
                 self.env.render(actions)
             local_buffer.add(q_val[0], actions[0], rewards[0], next_obs, hidden, comm_mask)
             if done is False and self.env.steps < self.max_episode_length:
@@ -62,7 +62,7 @@ class Actor:
                     data = local_buffer.finish()
                     print(f"done~~~ id = {self.id}")
                     self.global_buffer.is_done.remote(1)
-
+                    self.global_buffer.steps.remote(self.env.steps)
                 else:
                     _, q_val, hidden, comm_mask = self.model.step(torch.from_numpy(next_obs.astype(np.float32)),
                                                                   torch.from_numpy(next_pos.astype(np.float32)))

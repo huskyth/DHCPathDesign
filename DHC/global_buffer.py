@@ -47,6 +47,8 @@ class GlobalBuffer:
 
         self.background_thread = None
         self.done_times = 0
+        self.step_s = 0
+        self.step_c = 0
         self.last = None
         self.all_times = 0
         self.my_summary = writer
@@ -80,6 +82,12 @@ class GlobalBuffer:
         self.done_times += is_done
         self.all_times += 1
         self.my_summary.add_float.remote(x=None, y=self.done_times / self.all_times, title="success rate",
+                                         x_name=None)
+
+    def steps(self, step):
+        self.step_s += step
+        self.step_c += 1
+        self.my_summary.add_float.remote(x=None, y=self.step_s / self.step_c, title="success steps",
                                          x_name=None)
 
     def ret(self, return_value):

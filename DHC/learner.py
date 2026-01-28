@@ -162,26 +162,26 @@ class Learner:
         epoch = 0
         while not ray.get(self.buffer.check_done.remote()):
             epoch += 1
-            step_length = 100
+            step_length = 45
             for i in range(1, step_length):
 
                 b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden, b_comm_mask, \
                     idxes, weights, old_ptr, pre_obs, r_t = self.get_data()
 
-                e_loss, e_reward = self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len,
-                                                         b_hidden,
-                                                         b_comm_mask, \
-                                                         idxes, weights, pre_obs, epoch, r_t)
+                # e_loss, e_reward = self.compute_icm_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len,
+                #                                          b_hidden,
+                #                                          b_comm_mask, \
+                #                                          idxes, weights, pre_obs, epoch, r_t)
 
-                td_error, loss = self.q_loss(b_obs, b_action, b_reward + e_reward, b_done, b_steps, b_seq_len, b_hidden,
+                td_error, loss = self.q_loss(b_obs, b_action, b_reward, b_done, b_steps, b_seq_len, b_hidden,
                                              b_comm_mask, \
                                              idxes, weights, pre_obs, epoch, r_t)
 
                 priorities = td_error.detach().squeeze().abs().clamp(1e-4).cpu().numpy()
 
-                self.loss += loss.item() + e_loss.item()
+                self.loss += loss.item()
 
-                self.param_update(e_loss, icm_scaler, self.icm_optimizer, self.icm_scheduler, self.icm)
+                # self.param_update(e_loss, icm_scaler, self.icm_optimizer, self.icm_scheduler, self.icm)
 
                 self.param_update(loss, scaler, self.optimizer, self.scheduler, self.model)
 
@@ -197,12 +197,9 @@ class Learner:
                 self.counter += 1
                 if i % configs.save_interval == 0:
                     now_time = time.strftime("%Y-%m-%d-%H", time.localtime())
-                    path = os.path.join(configs.save_path, '{}-{}.pth'.format(now_time,
-                                                                              self.counter))
+                    path = os.path.join(configs.save_path, 'saved_model.pth'.format(
+                        self.counter))
                     model_save(self.model, self.optimizer, path)
-                    print(
-                        "save model path:" + os.path.join(configs.save_path, '{}-{}.pth'.
-                                                          format(now_time, self.counter)))
 
         self.done = True
 

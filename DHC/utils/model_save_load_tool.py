@@ -1,6 +1,6 @@
 import torch
 
-TEST_MODEL_NAME = '2025-04-12-13-151985.pth'
+TEST_MODEL_NAME = 'saved_model.pth'
 
 
 def model_save(model, optimizer, path):
@@ -11,5 +11,7 @@ def model_save(model, optimizer, path):
 
 
 def model_load(path):
+    import os
+    path = os.path.join(r"C:\Users\qq162\Desktop\DHCPathDesign\DHC\models", TEST_MODEL_NAME)
     ckt = torch.load(path)
     return ckt['model_state_dict'], ckt['optimizer_state_dict']

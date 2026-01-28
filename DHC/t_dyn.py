@@ -15,7 +15,7 @@ device = 'cpu'
 torch.set_num_threads(1)
 
 
-def test_model(model_name):
+def t_model(model_name):
     '''
     test model in 'models' file with model number
     '''
@@ -33,7 +33,7 @@ def test_model(model_name):
     print('----------test model {}----------'.format(model_name))
 
 
-def test_one_case(network):
+def one_case(network):
     env = Environment()
     obs, pos = env.observe()
 
@@ -52,7 +52,7 @@ def test_one_case(network):
     return np.array_equal(env.agents_pos, env.goals_pos), step
 
 
-def make_animation(model_name, steps: int = 1000):
+def make_animation(model_name, steps: int = 100, idx=99):
     '''
     visualize running results
     model_name: model number in 'models' file
@@ -71,9 +71,9 @@ def make_animation(model_name, steps: int = 1000):
     network.to(device)
     network.eval()
     network.to(device)
-    weight_file = model_name
-    model_state_dict, _ = model_load(weight_file)
-    network.load_state_dict(model_state_dict)
+    # weight_file = model_name
+    # model_state_dict, _ = model_load(weight_file)
+    # network.load_state_dict(model_state_dict)
 
     env = Environment()
 
@@ -108,6 +108,7 @@ def make_animation(model_name, steps: int = 1000):
                                         torch.from_numpy(pos.astype(np.float32)).to(device))
         (obs, pos), _, done, _ = env.step(actions)
 
+    print(f"is done {done},steps {env.steps}")
     if done and env.steps < steps:
         map = np.copy(env.map)
         for agent_id in range(env.num_agents):
@@ -131,7 +132,9 @@ def make_animation(model_name, steps: int = 1000):
     ani = animation.ArtistAnimation(fig, imgs, interval=600, blit=True, repeat_delay=1000)
 
     ticks = time.strftime("%Y-%m-%d-%H-%M", time.localtime())
-    ani.save('videos/{}.gif'.format(ticks))
+    if idx == 99:
+        ani.save('videos/{}.gif'.format(ticks))
+    return 1 if done else 0, env.steps
 
 
 def create_test(test_env_settings, num_test_cases):
@@ -152,14 +155,14 @@ def create_test(test_env_settings, num_test_cases):
             pickle.dump(tests, f)
 
 
-def test_while_training(network, num=100):
+def _while_training(network, num=100):
     print('start test')
     network.eval()
     network.to('cpu')
     all_is_finish = 0
     all_steps = 0
     for x in range(num):
-        is_finish, steps = test_one_case(network)
+        is_finish, steps = one_case(network)
         all_is_finish += 1 if is_finish else 0
         all_steps += steps
     network.train()
@@ -169,6 +172,10 @@ def test_while_training(network, num=100):
 
 
 if __name__ == '__main__':
-    test_model(TEST_MODEL_NAME)
-    make_animation(model_name=TEST_MODEL_NAME)
-    network = Network()
+    su, ste = 0, 0
+    all = 100
+    for i in range(all):
+        a, b = make_animation(model_name=TEST_MODEL_NAME, idx=i)
+        su += a
+        ste += b
+    print(f"success rate {su / all}, ave step {ste / all}")

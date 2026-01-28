@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-from configs import PROJECT_ROOT
+from configs import PROJECT_ROOT, map_size
 
 
 class StaticObstacle():
@@ -11,7 +11,10 @@ class StaticObstacle():
         self.map_data = None
         self.agent_size = agent_size
         self.readfile(filepath)
-        self.static_map = self.grid()
+        # self.static_map = self.grid()
+        self.obstacle_density = 0.0
+        self.static_map = np.random.choice(2, map_size, p=[1 - self.obstacle_density, self.obstacle_density]).astype(
+            np.int64)
 
     def readfile(self, filepath):
         map = {}
