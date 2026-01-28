@@ -424,19 +424,19 @@ class Environment:
         else:
             done = False
             at = 0
-            for i in range(self.num_agents):
-                if np.array_equal(self.agents_pos[i], self.goals_pos[i]):
-                    at += 1
+            # for i in range(self.num_agents):
+            #     if np.array_equal(self.agents_pos[i], self.goals_pos[i]):
+            #         at += 1
 
-            rewards = [at / self.num_agents for _ in range(self.num_agents)]
+            # rewards = [at / self.num_agents for _ in range(self.num_agents)]
 
-        c_a = actions[0] - 1
-        obs = self.observe()
+        # c_a = actions[0] - 1
+        # obs = self.observe()
         #
-        if done:
-            rewards = [1]
-        else:
-            rewards = [0]
+        # if done:
+        #     rewards = [1]
+        # else:
+        #     rewards = [0]
             # if c_a == -1:
             #     rewards = [-2]
             # else:

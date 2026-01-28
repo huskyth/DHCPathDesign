@@ -26,7 +26,7 @@ save_path = str(MODEL_FILE)
 ####################         DQN        ####################
 ############################################################
 
-num_actors = 1 if not DEBUG_MODE else 1
+num_actors = 4 if not DEBUG_MODE else 1
 log_interval = 10
 save_interval = 2000
 gamma = 0.99

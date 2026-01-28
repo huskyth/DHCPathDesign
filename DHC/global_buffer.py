@@ -47,6 +47,7 @@ class GlobalBuffer:
 
         self.background_thread = None
         self.done_times = 0
+        self.last = None
         self.all_times = 0
         self.my_summary = writer
 
@@ -74,10 +75,19 @@ class GlobalBuffer:
             return data_id
         else:
             return self.batched_data.pop(0)
+
     def is_done(self, is_done):
         self.done_times += is_done
         self.all_times += 1
         self.my_summary.add_float.remote(x=None, y=self.done_times / self.all_times, title="success rate",
+                                         x_name=None)
+
+    def ret(self, return_value):
+        if self.last is None:
+            self.last = return_value
+        else:
+            self.last = self.last * 0.9 + 0.1 * return_value
+        self.my_summary.add_float.remote(x=None, y=self.last, title="Smooth Return Value",
                                          x_name=None)
 
     def add(self, data: Tuple):
