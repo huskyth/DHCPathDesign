@@ -37,11 +37,11 @@ target_network_update_freq = 200
 actor_update_steps = 100
 actor_random_generate_acceleration = 4000
 
-max_episode_length = 128 if not DEBUG_MODE else 2
+max_episode_length = 256 if not DEBUG_MODE else 2
 seq_len = 1
 
 # n-step forward
-forward_steps = 2
+forward_steps = 32
 
 # global buffer
 episode_capacity = 128
@@ -58,7 +58,7 @@ max_map_lenght = 40
 pass_rate = 0.9
 
 # dqn network setting
-cnn_channel = 64
+cnn_channel = 128
 hidden_dim = 128
 
 # communication

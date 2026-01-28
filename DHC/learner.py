@@ -197,8 +197,8 @@ class Learner:
                 self.counter += 1
                 if i % configs.save_interval == 0:
                     now_time = time.strftime("%Y-%m-%d-%H", time.localtime())
-                    path = os.path.join(configs.save_path, 'saved_model.pth'.format(
-                        self.counter))
+                    key = '_'.join(str(x) for x in configs.map_size)
+                    path = os.path.join(configs.save_path, f'saved_model_{key}.pth')
                     model_save(self.model, self.optimizer, path)
 
         self.done = True
