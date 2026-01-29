@@ -431,10 +431,10 @@ class Environment:
         # c_a = actions[0] - 1
         # obs = self.observe()
         #
-        # if done:
-        #     rewards = [1]
-        # else:
-        #     rewards = [0]
+        if done:
+            rewards = [1]
+        else:
+            rewards = [0]
         # if c_a == -1:
         #     rewards = [-2]
         # else:

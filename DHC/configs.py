@@ -26,7 +26,7 @@ save_path = str(MODEL_FILE)
 ####################         DQN        ####################
 ############################################################
 
-num_actors = 4 if not DEBUG_MODE else 1
+num_actors = 6 if not DEBUG_MODE else 1
 log_interval = 10
 save_interval = 13
 gamma = 0.99
@@ -37,11 +37,11 @@ target_network_update_freq = 200
 actor_update_steps = 100
 actor_random_generate_acceleration = 4000
 
-max_episode_length = 256 if not DEBUG_MODE else 2
+max_episode_length = 512 if not DEBUG_MODE else 2
 seq_len = 1
 
 # n-step forward
-forward_steps = 32
+forward_steps = 64
 
 # global buffer
 episode_capacity = 128
@@ -58,7 +58,7 @@ max_map_lenght = 40
 pass_rate = 0.9
 
 # dqn network setting
-cnn_channel = 128
+cnn_channel = 64
 hidden_dim = 128
 
 # communication
